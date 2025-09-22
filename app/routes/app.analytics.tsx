@@ -107,7 +107,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                   quantity
                   title
                   discountedTotalSet { shopMoney { amount currencyCode } }
-                  product { id title sku }
+                  product { id title }
+                  variant { sku }
                 }
               }
             }
