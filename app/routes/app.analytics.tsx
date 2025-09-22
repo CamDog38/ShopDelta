@@ -844,7 +844,53 @@ export default function AnalyticsPage() {
             <InlineStack gap="300" wrap align="end">
               <div style={{ minWidth: '140px' }}>
                 <Text as="span" variant="bodySm" tone="subdued">Time Period</Text>
-                <select name="preset" defaultValue={filters?.preset ?? "last30"} style={{ width: '100%', marginTop: '4px', padding: '8px', border: '1px solid var(--p-color-border)', borderRadius: '6px' }}>
+                <select 
+                  name="preset" 
+                  defaultValue={filters?.preset ?? "last30"} 
+                  style={{ width: '100%', marginTop: '4px', padding: '8px', border: '1px solid var(--p-color-border)', borderRadius: '6px' }}
+                  onChange={(e) => {
+                    const preset = e.target.value;
+                    const now = new Date();
+                    const utcNow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+                    const startInput = document.querySelector('input[name="start"]') as HTMLInputElement;
+                    const endInput = document.querySelector('input[name="end"]') as HTMLInputElement;
+                    
+                    if (startInput && endInput) {
+                      let start: Date, end: Date;
+                      
+                      switch (preset) {
+                        case "last7":
+                          end = utcNow;
+                          start = new Date(utcNow);
+                          start.setUTCDate(start.getUTCDate() - 6);
+                          break;
+                        case "last30":
+                          end = utcNow;
+                          start = new Date(utcNow);
+                          start.setUTCDate(start.getUTCDate() - 29);
+                          break;
+                        case "thisMonth":
+                          start = new Date(Date.UTC(utcNow.getUTCFullYear(), utcNow.getUTCMonth(), 1));
+                          end = utcNow;
+                          break;
+                        case "lastMonth":
+                          const firstThis = new Date(Date.UTC(utcNow.getUTCFullYear(), utcNow.getUTCMonth(), 1));
+                          start = new Date(Date.UTC(firstThis.getUTCFullYear(), firstThis.getUTCMonth() - 1, 1));
+                          end = new Date(Date.UTC(firstThis.getUTCFullYear(), firstThis.getUTCMonth(), 0));
+                          break;
+                        case "ytd":
+                          start = new Date(Date.UTC(utcNow.getUTCFullYear(), 0, 1));
+                          end = utcNow;
+                          break;
+                        default:
+                          return; // Don't update for custom
+                      }
+                      
+                      startInput.value = start.toISOString().slice(0, 10);
+                      endInput.value = end.toISOString().slice(0, 10);
+                    }
+                  }}
+                >
                   <option value="last7">Last 7 days</option>
                   <option value="last30">Last 30 days</option>
                   <option value="thisMonth">This month</option>
@@ -1590,13 +1636,44 @@ export default function AnalyticsPage() {
                 )}
               </BlockStack>
             </div>
-            {!comparison && <Text as="p" variant="bodyMd">Select a comparison mode to calculate deltas.</Text>}
+            {!comparison && (
+              <div style={{ background: 'var(--p-color-bg-surface)', padding: '20px', borderRadius: '12px', border: '1px solid var(--p-color-border)', textAlign: 'center' }}>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  👆 Select a comparison type above (Month-over-Month or Year-over-Year) and scope (Overall Totals or By Product) to view comparison data.
+                </Text>
+                <div style={{ marginTop: '12px' }}>
+                  <div 
+                    onClick={() => changeCompare('mom')} 
+                    style={{
+                      display: 'inline-block',
+                      padding: '12px 24px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)'
+                    }}
+                  >
+                    🚀 Start with Month-over-Month
+                  </div>
+                </div>
+              </div>
+            )}
             {!!comparison && (
               <>
                 {filters?.compareScope === "aggregate" && filters?.compare === 'mom' && (
                   <div style={{ background: 'var(--p-color-bg-surface)', padding: '20px', borderRadius: '12px', border: '1px solid var(--p-color-border)' }}>
                     <div style={{ marginBottom: '16px' }}>
                       <Text as="h3" variant="headingMd">📊 Month-over-Month Comparison</Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        {filters?.momA && filters?.momB 
+                          ? `Comparing ${momMonths.find(m => m.key === filters.momA)?.label || filters.momA} vs ${momMonths.find(m => m.key === filters.momB)?.label || filters.momB}`
+                          : 'Showing consecutive month comparisons within your selected date range'
+                        }
+                      </Text>
                     </div>
                     <DataTable
                       columnContentTypes={["text","numeric","numeric","numeric","text","numeric","numeric","numeric","text"]}
@@ -1619,6 +1696,9 @@ export default function AnalyticsPage() {
                   <div style={{ background: 'var(--p-color-bg-surface)', padding: '20px', borderRadius: '12px', border: '1px solid var(--p-color-border)' }}>
                     <div style={{ marginBottom: '16px' }}>
                       <Text as="h3" variant="headingMd">📆 Year-over-Year Comparison</Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Comparing each month in your selected period vs the same month in the previous year (e.g., Jan 2025 vs Jan 2024, Feb 2025 vs Feb 2024)
+                      </Text>
                     </div>
                     {Array.isArray((data as any).comparisonTable) && (data as any).comparisonTable.length > 0 && !("metric" in (data as any).comparisonTable[0]) ? (
                       <DataTable
@@ -1655,6 +1735,14 @@ export default function AnalyticsPage() {
                   <div style={{ background: 'var(--p-color-bg-surface)', padding: '20px', borderRadius: '12px', border: '1px solid var(--p-color-border)' }}>
                     <div style={{ marginBottom: '16px' }}>
                       <Text as="h3" variant="headingMd">🏷️ Product Comparison</Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        {filters?.compare === 'yoy' 
+                          ? 'Comparing each product\'s performance in your selected period vs the same period last year'
+                          : filters?.momA && filters?.momB
+                            ? `Comparing each product's performance: ${momMonths.find(m => m.key === filters.momA)?.label || filters.momA} vs ${momMonths.find(m => m.key === filters.momB)?.label || filters.momB}`
+                            : 'Comparing each product\'s performance between consecutive months in your selected period'
+                        }
+                      </Text>
                     </div>
                     <DataTable
                       columnContentTypes={["text","numeric","numeric","numeric","text","numeric","numeric","numeric","text"]}
