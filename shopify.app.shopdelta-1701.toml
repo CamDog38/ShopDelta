@@ -1,0 +1,19 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "2fa2c178fa57eb0d4d4d08524930a049"
+name = "ShopDelta 1701"
+application_url = "https://inns-thriller-rebate-resources.trycloudflare.com"
+embedded = true
+handle = "shopdelta-1701"
+
+[webhooks]
+api_version = "2025-07"
+
+[auth]
+redirect_urls = ["https://inns-thriller-rebate-resources.trycloudflare.com/auth/callback", "https://inns-thriller-rebate-resources.trycloudflare.com/auth/shopify/callback", "https://inns-thriller-rebate-resources.trycloudflare.com/api/auth/callback"]
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
