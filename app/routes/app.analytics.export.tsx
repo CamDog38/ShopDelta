@@ -64,6 +64,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                     title
                     discountedTotalSet { shopMoney { amount currencyCode } }
                     product { id title }
+                    variant { sku }
                   }
                 }
               }
@@ -90,7 +91,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         }
       }
     } catch (gerr: any) {
-      return json({ error: "GraphQL request failed", details: gerr?.message || String(gerr) }, { status: 500 });
+      console.error("GraphQL request failed:", gerr);
+      return json({ 
+        error: "GraphQL request failed", 
+        details: gerr?.message || String(gerr),
+        query: search 
+      }, { status: 500 });
     }
 
     // Aggregations
@@ -288,6 +294,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       },
     });
   } catch (err: any) {
-    return json({ error: err?.message || "Export failed", stack: err?.stack }, { status: 500 });
+    console.error("Export failed:", err);
+    return json({ 
+      error: err?.message || "Export failed", 
+      details: err?.stack || String(err),
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 };
