@@ -3,14 +3,24 @@ import { ApiVersion, AppDistribution, shopifyApp } from "@shopify/shopify-app-re
 import { RedisSessionStorage } from "@shopify/shopify-app-session-storage-redis";
 
 function buildSessionStorage() {
-  const url = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.REDIS_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.REDIS_PASSWORD;
-  if (!url) {
-    throw new Error("Missing Redis connection: set REDIS_URL or UPSTASH_REDIS_REST_URL");
+  // The Redis adapter expects a standard Redis connection string (redis/rediss)
+  // Example (Upstash TLS): rediss://default:PASSWORD@infinite-impala-8590.upstash.io:6379
+  const connectionString = process.env.REDIS_URL;
+
+  if (!connectionString) {
+    // If the user only configured the REST vars, guide them to supply the TLS URL + password
+    if (process.env.UPSTASH_REDIS_REST_URL || process.env.UPSTASH_REDIS_REST_TOKEN) {
+      throw new Error(
+        "Redis session storage requires REDIS_URL as a standard redis/rediss connection string. " +
+        "For Upstash, use the TLS endpoint and password, e.g. rediss://default:PASSWORD@<host>:6379"
+      );
+    }
+    throw new Error("Missing REDIS_URL environment variable for Redis session storage");
   }
-  return new RedisSessionStorage({
-    connection: token ? { url, token } : { url },
-  });
+
+  // Pass a single redis/rediss connection string to the adapter
+  // e.g., rediss://default:PASSWORD@host:6379
+  return new RedisSessionStorage(connectionString);
 }
 
 const shopify = shopifyApp({
