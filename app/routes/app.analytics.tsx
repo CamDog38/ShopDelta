@@ -883,44 +883,128 @@ export default function AnalyticsPage() {
         </div>
 
         {/* View Navigation */}
-        <div style={{ borderBottom: '1px solid var(--p-color-border)' }}>
-          <InlineStack gap="0">
-            <Button 
+        <div style={{ 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+          padding: '4px', 
+          borderRadius: '12px',
+          boxShadow: '0 4px 20px rgba(102, 126, 234, 0.15)'
+        }}>
+          <InlineStack gap="100">
+            <div 
               onClick={() => changeView("chart")} 
-              variant={filters?.view === "chart" || !filters?.view ? "primary" : "plain"} 
-              disabled={isNavLoading}
-              size="large"
+              style={{
+                padding: '12px 20px',
+                borderRadius: '8px',
+                background: filters?.view === "chart" || !filters?.view 
+                  ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+                  : 'rgba(255, 255, 255, 0.1)',
+                color: 'white',
+                cursor: isNavLoading ? 'not-allowed' : 'pointer',
+                fontWeight: '600',
+                fontSize: '14px',
+                border: 'none',
+                transition: 'all 0.3s ease',
+                backdropFilter: 'blur(10px)',
+                opacity: isNavLoading ? 0.6 : 1,
+                boxShadow: filters?.view === "chart" || !filters?.view 
+                  ? '0 4px 15px rgba(79, 172, 254, 0.4)' 
+                  : 'none'
+              }}
             >
               📊 Charts
-            </Button>
-            <Button 
+            </div>
+            <div 
               onClick={() => changeView("table")} 
-              variant={filters?.view === "table" ? "primary" : "plain"} 
-              disabled={isNavLoading}
-              size="large"
+              style={{
+                padding: '12px 20px',
+                borderRadius: '8px',
+                background: filters?.view === "table" 
+                  ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+                  : 'rgba(255, 255, 255, 0.1)',
+                color: 'white',
+                cursor: isNavLoading ? 'not-allowed' : 'pointer',
+                fontWeight: '600',
+                fontSize: '14px',
+                border: 'none',
+                transition: 'all 0.3s ease',
+                backdropFilter: 'blur(10px)',
+                opacity: isNavLoading ? 0.6 : 1,
+                boxShadow: filters?.view === "table" 
+                  ? '0 4px 15px rgba(79, 172, 254, 0.4)' 
+                  : 'none'
+              }}
             >
               📋 Data Table
-            </Button>
-            <Button 
+            </div>
+            <div 
               onClick={() => changeView("summary")} 
-              variant={filters?.view === "summary" ? "primary" : "plain"} 
-              disabled={isNavLoading}
-              size="large"
+              style={{
+                padding: '12px 20px',
+                borderRadius: '8px',
+                background: filters?.view === "summary" 
+                  ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+                  : 'rgba(255, 255, 255, 0.1)',
+                color: 'white',
+                cursor: isNavLoading ? 'not-allowed' : 'pointer',
+                fontWeight: '600',
+                fontSize: '14px',
+                border: 'none',
+                transition: 'all 0.3s ease',
+                backdropFilter: 'blur(10px)',
+                opacity: isNavLoading ? 0.6 : 1,
+                boxShadow: filters?.view === "summary" 
+                  ? '0 4px 15px rgba(79, 172, 254, 0.4)' 
+                  : 'none'
+              }}
             >
               📈 Summary
-            </Button>
-            <Button 
+            </div>
+            <div 
               onClick={() => changeView("compare")} 
-              variant={filters?.view === "compare" ? "primary" : "plain"} 
-              disabled={isNavLoading}
-              size="large"
+              style={{
+                padding: '12px 20px',
+                borderRadius: '8px',
+                background: filters?.view === "compare" 
+                  ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+                  : 'rgba(255, 255, 255, 0.1)',
+                color: 'white',
+                cursor: isNavLoading ? 'not-allowed' : 'pointer',
+                fontWeight: '600',
+                fontSize: '14px',
+                border: 'none',
+                transition: 'all 0.3s ease',
+                backdropFilter: 'blur(10px)',
+                opacity: isNavLoading ? 0.6 : 1,
+                boxShadow: filters?.view === "compare" 
+                  ? '0 4px 15px rgba(79, 172, 254, 0.4)' 
+                  : 'none'
+              }}
             >
               🔄 Compare
-            </Button>
+            </div>
             <div style={{ marginLeft: 'auto' }}>
-              <Button onClick={exportWorkbook} disabled={isNavLoading || isExporting} loading={isExporting} variant="plain">
-                📥 Export Excel
-              </Button>
+              <div 
+                onClick={exportWorkbook} 
+                style={{
+                  padding: '12px 20px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                  color: 'white',
+                  cursor: (isNavLoading || isExporting) ? 'not-allowed' : 'pointer',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  border: 'none',
+                  transition: 'all 0.3s ease',
+                  backdropFilter: 'blur(10px)',
+                  opacity: (isNavLoading || isExporting) ? 0.6 : 1,
+                  boxShadow: '0 4px 15px rgba(250, 112, 154, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                {isExporting ? '⏳' : '📥'} Export Excel
+              </div>
             </div>
           </InlineStack>
         </div>
@@ -937,75 +1021,174 @@ export default function AnalyticsPage() {
                   </Text>
                 </InlineStack>
                 
-                <InlineStack gap="200" wrap>
+                <InlineStack gap="300" wrap>
                   <div>
-                    <Text as="span" variant="bodySm" tone="subdued">Metric</Text>
-                    <div style={{ marginTop: '4px' }}>
-                      <InlineStack gap="0">
-                        <Button 
+                    <div style={{ fontWeight: '600', marginBottom: '8px' }}>
+                      <Text as="span" variant="bodySm" tone="subdued">Metric</Text>
+                    </div>
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                      padding: '3px', 
+                      borderRadius: '8px',
+                      boxShadow: '0 2px 10px rgba(102, 126, 234, 0.15)'
+                    }}>
+                      <InlineStack gap="100">
+                        <div 
                           onClick={() => applyPatch({ view: 'chart', metric: 'qty' })} 
-                          variant={(filters?.metric || 'qty') === 'qty' ? 'primary' : 'plain'} 
-                          disabled={isNavLoading}
-                          size="medium"
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            background: (filters?.metric || 'qty') === 'qty' 
+                              ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+                              : 'rgba(255, 255, 255, 0.1)',
+                            color: 'white',
+                            cursor: isNavLoading ? 'not-allowed' : 'pointer',
+                            fontWeight: '600',
+                            fontSize: '13px',
+                            transition: 'all 0.3s ease',
+                            opacity: isNavLoading ? 0.6 : 1,
+                            boxShadow: (filters?.metric || 'qty') === 'qty' 
+                              ? '0 2px 8px rgba(79, 172, 254, 0.4)' 
+                              : 'none'
+                          }}
                         >
                           📦 Quantity
-                        </Button>
-                        <Button 
+                        </div>
+                        <div 
                           onClick={() => applyPatch({ view: 'chart', metric: 'sales' })} 
-                          variant={(filters?.metric || 'qty') === 'sales' ? 'primary' : 'plain'} 
-                          disabled={isNavLoading}
-                          size="medium"
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            background: (filters?.metric || 'qty') === 'sales' 
+                              ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+                              : 'rgba(255, 255, 255, 0.1)',
+                            color: 'white',
+                            cursor: isNavLoading ? 'not-allowed' : 'pointer',
+                            fontWeight: '600',
+                            fontSize: '13px',
+                            transition: 'all 0.3s ease',
+                            opacity: isNavLoading ? 0.6 : 1,
+                            boxShadow: (filters?.metric || 'qty') === 'sales' 
+                              ? '0 2px 8px rgba(79, 172, 254, 0.4)' 
+                              : 'none'
+                          }}
                         >
                           💰 Sales
-                        </Button>
+                        </div>
                       </InlineStack>
                     </div>
                   </div>
                   
                   <div>
-                    <Text as="span" variant="bodySm" tone="subdued">View</Text>
-                    <div style={{ marginTop: '4px' }}>
-                      <InlineStack gap="0">
-                        <Button 
+                    <div style={{ fontWeight: '600', marginBottom: '8px' }}>
+                      <Text as="span" variant="bodySm" tone="subdued">View</Text>
+                    </div>
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                      padding: '3px', 
+                      borderRadius: '8px',
+                      boxShadow: '0 2px 10px rgba(102, 126, 234, 0.15)'
+                    }}>
+                      <InlineStack gap="100">
+                        <div 
                           onClick={() => applyPatch({ view: 'chart', chartScope: 'aggregate' })} 
-                          variant={(filters?.chartScope || 'aggregate') === 'aggregate' ? 'primary' : 'plain'} 
-                          disabled={isNavLoading}
-                          size="medium"
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            background: (filters?.chartScope || 'aggregate') === 'aggregate' 
+                              ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+                              : 'rgba(255, 255, 255, 0.1)',
+                            color: 'white',
+                            cursor: isNavLoading ? 'not-allowed' : 'pointer',
+                            fontWeight: '600',
+                            fontSize: '13px',
+                            transition: 'all 0.3s ease',
+                            opacity: isNavLoading ? 0.6 : 1,
+                            boxShadow: (filters?.chartScope || 'aggregate') === 'aggregate' 
+                              ? '0 2px 8px rgba(79, 172, 254, 0.4)' 
+                              : 'none'
+                          }}
                         >
                           📊 Total
-                        </Button>
-                        <Button 
+                        </div>
+                        <div 
                           onClick={() => applyPatch({ view: 'chart', chartScope: 'product' })} 
-                          variant={filters?.chartScope === 'product' ? 'primary' : 'plain'} 
-                          disabled={isNavLoading}
-                          size="medium"
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            background: filters?.chartScope === 'product' 
+                              ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+                              : 'rgba(255, 255, 255, 0.1)',
+                            color: 'white',
+                            cursor: isNavLoading ? 'not-allowed' : 'pointer',
+                            fontWeight: '600',
+                            fontSize: '13px',
+                            transition: 'all 0.3s ease',
+                            opacity: isNavLoading ? 0.6 : 1,
+                            boxShadow: filters?.chartScope === 'product' 
+                              ? '0 2px 8px rgba(79, 172, 254, 0.4)' 
+                              : 'none'
+                          }}
                         >
                           🏷️ By Product
-                        </Button>
+                        </div>
                       </InlineStack>
                     </div>
                   </div>
                   
                   <div>
-                    <Text as="span" variant="bodySm" tone="subdued">Chart Type</Text>
-                    <div style={{ marginTop: '4px' }}>
-                      <InlineStack gap="0">
-                        <Button 
+                    <div style={{ fontWeight: '600', marginBottom: '8px' }}>
+                      <Text as="span" variant="bodySm" tone="subdued">Chart Type</Text>
+                    </div>
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                      padding: '3px', 
+                      borderRadius: '8px',
+                      boxShadow: '0 2px 10px rgba(102, 126, 234, 0.15)'
+                    }}>
+                      <InlineStack gap="100">
+                        <div 
                           onClick={() => changeChart("bar")} 
-                          variant={chartType === "bar" ? 'primary' : 'plain'} 
-                          disabled={isNavLoading}
-                          size="medium"
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            background: chartType === "bar" 
+                              ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+                              : 'rgba(255, 255, 255, 0.1)',
+                            color: 'white',
+                            cursor: isNavLoading ? 'not-allowed' : 'pointer',
+                            fontWeight: '600',
+                            fontSize: '13px',
+                            transition: 'all 0.3s ease',
+                            opacity: isNavLoading ? 0.6 : 1,
+                            boxShadow: chartType === "bar" 
+                              ? '0 2px 8px rgba(79, 172, 254, 0.4)' 
+                              : 'none'
+                          }}
                         >
                           📊 Bar
-                        </Button>
-                        <Button 
+                        </div>
+                        <div 
                           onClick={() => changeChart("line")} 
-                          variant={chartType === "line" ? 'primary' : 'plain'} 
-                          disabled={isNavLoading}
-                          size="medium"
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            background: chartType === "line" 
+                              ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+                              : 'rgba(255, 255, 255, 0.1)',
+                            color: 'white',
+                            cursor: isNavLoading ? 'not-allowed' : 'pointer',
+                            fontWeight: '600',
+                            fontSize: '13px',
+                            transition: 'all 0.3s ease',
+                            opacity: isNavLoading ? 0.6 : 1,
+                            boxShadow: chartType === "line" 
+                              ? '0 2px 8px rgba(79, 172, 254, 0.4)' 
+                              : 'none'
+                          }}
                         >
                           📈 Line
-                        </Button>
+                        </div>
                       </InlineStack>
                     </div>
                   </div>
@@ -1224,6 +1407,189 @@ export default function AnalyticsPage() {
         {/* Comparison view */}
         {filters?.view === "compare" && (
           <>
+            <div style={{ background: 'var(--p-color-bg-surface)', padding: '24px', borderRadius: '12px', border: '1px solid var(--p-color-border)' }}>
+              <BlockStack gap="400">
+                <div>
+                  <Text as="h2" variant="headingMd">🔄 Comparison Analysis</Text>
+                  <Text as="p" variant="bodySm" tone="subdued">Compare performance across time periods and products</Text>
+                </div>
+                
+                <InlineStack gap="300" wrap>
+                  <div>
+                    <div style={{ fontWeight: '600', marginBottom: '8px' }}>
+                      <Text as="span" variant="bodySm" tone="subdued">Comparison Type</Text>
+                    </div>
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                      padding: '3px', 
+                      borderRadius: '8px',
+                      boxShadow: '0 2px 10px rgba(102, 126, 234, 0.15)'
+                    }}>
+                      <InlineStack gap="100">
+                        <div 
+                          onClick={() => changeCompare('mom')} 
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            background: (filters?.compare || 'mom') === 'mom' 
+                              ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+                              : 'rgba(255, 255, 255, 0.1)',
+                            color: 'white',
+                            cursor: isNavLoading ? 'not-allowed' : 'pointer',
+                            fontWeight: '600',
+                            fontSize: '13px',
+                            transition: 'all 0.3s ease',
+                            opacity: isNavLoading ? 0.6 : 1,
+                            boxShadow: (filters?.compare || 'mom') === 'mom' 
+                              ? '0 2px 8px rgba(79, 172, 254, 0.4)' 
+                              : 'none'
+                          }}
+                        >
+                          📅 Month-over-Month
+                        </div>
+                        <div 
+                          onClick={() => changeCompare('yoy')} 
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            background: filters?.compare === 'yoy' 
+                              ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+                              : 'rgba(255, 255, 255, 0.1)',
+                            color: 'white',
+                            cursor: isNavLoading ? 'not-allowed' : 'pointer',
+                            fontWeight: '600',
+                            fontSize: '13px',
+                            transition: 'all 0.3s ease',
+                            opacity: isNavLoading ? 0.6 : 1,
+                            boxShadow: filters?.compare === 'yoy' 
+                              ? '0 2px 8px rgba(79, 172, 254, 0.4)' 
+                              : 'none'
+                          }}
+                        >
+                          📆 Year-over-Year
+                        </div>
+                      </InlineStack>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div style={{ fontWeight: '600', marginBottom: '8px' }}>
+                      <Text as="span" variant="bodySm" tone="subdued">Scope</Text>
+                    </div>
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                      padding: '3px', 
+                      borderRadius: '8px',
+                      boxShadow: '0 2px 10px rgba(102, 126, 234, 0.15)'
+                    }}>
+                      <InlineStack gap="100">
+                        <div
+                          onClick={() => applyPatch({ view: 'compare', compare: (filters?.compare as string) || 'mom', compareScope: 'aggregate', momA: filters?.momA || '', momB: filters?.momB || '' })}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            background: (filters?.compareScope || 'aggregate') === 'aggregate' 
+                              ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+                              : 'rgba(255, 255, 255, 0.1)',
+                            color: 'white',
+                            cursor: isNavLoading ? 'not-allowed' : 'pointer',
+                            fontWeight: '600',
+                            fontSize: '13px',
+                            transition: 'all 0.3s ease',
+                            opacity: isNavLoading ? 0.6 : 1,
+                            boxShadow: (filters?.compareScope || 'aggregate') === 'aggregate' 
+                              ? '0 2px 8px rgba(79, 172, 254, 0.4)' 
+                              : 'none'
+                          }}
+                        >
+                          📊 Overall Totals
+                        </div>
+                        <div
+                          onClick={() => applyPatch({ view: 'compare', compare: (filters?.compare as string) || 'mom', compareScope: 'product', momA: filters?.momA || '', momB: filters?.momB || '' })}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            background: filters?.compareScope === 'product' 
+                              ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+                              : 'rgba(255, 255, 255, 0.1)',
+                            color: 'white',
+                            cursor: isNavLoading ? 'not-allowed' : 'pointer',
+                            fontWeight: '600',
+                            fontSize: '13px',
+                            transition: 'all 0.3s ease',
+                            opacity: isNavLoading ? 0.6 : 1,
+                            boxShadow: filters?.compareScope === 'product' 
+                              ? '0 2px 8px rgba(79, 172, 254, 0.4)' 
+                              : 'none'
+                          }}
+                        >
+                          🏷️ By Product
+                        </div>
+                      </InlineStack>
+                    </div>
+                  </div>
+                </InlineStack>
+                
+                {(!filters?.compare || filters?.compare === 'mom') && (
+                  <div style={{ background: 'var(--p-color-bg-surface-secondary)', padding: '16px', borderRadius: '8px' }}>
+                    <Text as="span" variant="bodySm" tone="subdued">Month Selection (optional - leave blank for automatic consecutive months)</Text>
+                    <div style={{ marginTop: '8px' }}>
+                      <InlineStack gap="200" wrap>
+                      <div style={{ minWidth: '140px' }}>
+                        <Text as="span" variant="bodySm">From Month</Text>
+                        <select id="momA" defaultValue={filters?.momA || ''} style={{ width: '100%', marginTop: '4px', padding: '8px', border: '1px solid var(--p-color-border)', borderRadius: '6px' }}>
+                          <option value="">(auto-select)</option>
+                          {momMonths.map((m) => (
+                            <option key={m.key} value={m.key}>{m.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={{ minWidth: '140px' }}>
+                        <Text as="span" variant="bodySm">To Month</Text>
+                        <select id="momB" defaultValue={filters?.momB || ''} style={{ width: '100%', marginTop: '4px', padding: '8px', border: '1px solid var(--p-color-border)', borderRadius: '6px' }}>
+                          <option value="">(auto-select next)</option>
+                          {momMonths.map((m) => (
+                            <option key={m.key} value={m.key}>{m.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={{ alignSelf: 'flex-end' }}>
+                        <div onClick={() => {
+                          const a = (document.getElementById('momA') as HTMLSelectElement | null)?.value || '';
+                          const b = (document.getElementById('momB') as HTMLSelectElement | null)?.value || '';
+                          const scope = (filters?.compareScope as string) || 'aggregate';
+                          applyPatch({ view: 'compare', compare: 'mom', compareScope: scope, momA: a, momB: b });
+                        }} style={{
+                          padding: '10px 20px',
+                          borderRadius: '8px',
+                          background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                          color: 'white',
+                          cursor: isNavLoading ? 'not-allowed' : 'pointer',
+                          fontWeight: '600',
+                          fontSize: '14px',
+                          border: 'none',
+                          transition: 'all 0.3s ease',
+                          opacity: isNavLoading ? 0.6 : 1,
+                          boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)'
+                        }}>
+                          Update Comparison
+                        </div>
+                      </div>
+                      </InlineStack>
+                    </div>
+                  </div>
+                )}
+                
+                {isNavLoading && (
+                  <div style={{ textAlign: 'center', padding: '20px' }}>
+                    <InlineStack gap="100" align="center">
+                      <Spinner accessibilityLabel="Loading comparison" size="small" />
+                      <Text as="span" variant="bodySm" tone="subdued">Calculating comparison data…</Text>
+                    </InlineStack>
+                  </div>
+                )}
+              </BlockStack>
+            </div>
             {!comparison && <Text as="p" variant="bodyMd">Select a comparison mode to calculate deltas.</Text>}
             {!!comparison && (
               <>
