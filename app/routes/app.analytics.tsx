@@ -107,7 +107,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                   quantity
                   title
                   discountedTotalSet { shopMoney { amount currencyCode } }
-                  product { id title }
+                  product { id title sku }
                 }
               }
             }
@@ -160,7 +160,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     let currencyCode: string | null = null;
 
     // For Table view: pivot qty by product within each bucket
-    const productSet = new Map<string, string>(); // id -> title
+    const productSet = new Map<string, { title: string; sku: string }>(); // id -> {title, sku}
     const pivot = new Map<string, Map<string, number>>(); // bucketKey -> (productId -> qty)
 
     function bucketKey(dateStr: string): { key: string; label: string } {
@@ -211,10 +211,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const fallbackTitle: string = liEdge?.node?.title ?? "Unknown product";
         const id: string = product?.id ?? `li:${fallbackTitle}`;
         const title: string = product?.title ?? fallbackTitle;
+        const sku: string = product?.sku ?? "";
         if (!counts.has(id)) counts.set(id, { title, quantity: 0 });
         counts.get(id)!.quantity += qty;
         buckets.get(key)!.quantity += qty;
-        productSet.set(id, title);
+        productSet.set(id, { title, sku });
         const row = pivot.get(key)!;
         row.set(id, (row.get(id) || 0) + qty);
 
@@ -246,7 +247,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
     }
     const topProductsBySales = Array.from(salesByProduct.entries())
-      .map(([id, sales]) => ({ id, title: productSet.get(id) || id, sales }))
+      .map(([id, sales]) => ({ id, title: productSet.get(id)?.title || id, sales }))
       .sort((a, b) => b.sales - a.sales)
       .slice(0, 10);
 
@@ -265,7 +266,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       for (const pid of top5Ids) {
         const q = row.get(pid) || 0;
         const alloc = (q / bucketQty) * bucketAmt;
-        per[pid] = { qty: q, sales: alloc, title: productSet.get(pid) || pid };
+        per[pid] = { qty: q, sales: alloc, title: productSet.get(pid)?.title || pid };
       }
       return { key: s.key, label: s.label, per };
     });
@@ -273,7 +274,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // Build per-product line series across buckets for line charts
     const seriesProductLines = top5Ids.map((pid) => ({
       id: pid,
-      title: productSet.get(pid) || pid,
+      title: productSet.get(pid)?.title || pid,
       points: series.map((s) => {
         const row = pivot.get(s.key) || new Map<string, number>();
         const q = row.get(pid) || 0;
@@ -501,7 +502,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             const bucketAmt = bucketSales.get(key) || 0;
             for (const [pid, q] of row.entries()) {
               const alloc = (q / bucketQty) * bucketAmt;
-              const title = productSet.get(pid) || pid;
+              const title = productSet.get(pid)?.title || pid;
               const mp = monthlyProduct.get(mKey)!;
               if (!mp.has(pid)) mp.set(pid, { title, qty: 0, sales: 0 });
               const acc = mp.get(pid)!;
@@ -537,11 +538,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           const keys = new Set<string>([...Array.from(aMap.keys()), ...Array.from(bMap.keys())]);
           const rows: Array<Record<string, any>> = [];
           for (const pid of keys) {
-            const title = (bMap.get(pid)?.title) || (aMap.get(pid)?.title) || productSet.get(pid) || pid;
+            const title = (bMap.get(pid)?.title) || (aMap.get(pid)?.title) || productSet.get(pid)?.title || pid;
             const a = aMap.get(pid) || { title, qty: 0, sales: 0 };
             const b = bMap.get(pid) || { title, qty: 0, sales: 0 };
             rows.push({
               product: title,
+              productSku: productSet.get(pid)?.sku || "",
               qtyCurr: b.qty,
               qtyPrev: a.qty,
               qtyDelta: b.qty - a.qty,
@@ -561,13 +563,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           const keys = new Set<string>([...productSet.keys(), ...prevCounts.keys()]);
           const rows: Array<Record<string, any>> = [];
           for (const pid of keys) {
-            const title = productSet.get(pid) || prevCounts.get(pid)?.title || pid;
+            const title = productSet.get(pid)?.title || prevCounts.get(pid)?.title || pid;
             const qCurr = counts.get(pid)?.quantity || 0;
             const qPrev = prevCounts.get(pid)?.quantity || 0;
             const sCurr = salesByProduct.get(pid) || 0;
             const sPrev = prevSalesByProduct.get(pid) || 0;
             rows.push({
               product: title,
+              productSku: productSet.get(pid)?.sku || "",
               qtyCurr: qCurr,
               qtyPrev: qPrev,
               qtyDelta: qCurr - qPrev,
@@ -596,7 +599,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       comparisonHeaders,
       seriesProduct,
       seriesProductLines,
-      productLegend: top5Ids.map((id) => ({ id, title: productSet.get(id) || id })),
+      productLegend: top5Ids.map((id) => ({ id, title: productSet.get(id)?.title || id, sku: productSet.get(id)?.sku || "" })),
       momMonths,
       filters: { start: fmtYMD(start!), end: fmtYMD(end!), granularity: granParam, preset, view, compare: compareMode, chart: chartType, metric: chartMetric, chartScope, compareScope, productFocus, momA: momA || undefined, momB: momB || undefined },
       shop: session.shop,
@@ -1824,21 +1827,70 @@ export default function AnalyticsPage() {
                         }
                       </Text>
                     </div>
-                    <DataTable
-                      columnContentTypes={["text","numeric","numeric","numeric","text","numeric","numeric","numeric","text"]}
-                      headings={["Product","Qty (Curr)","Qty (Prev)","Qty Δ","Qty Δ%","Sales (Curr)","Sales (Prev)","Sales Δ","Sales Δ%"]}
-                      rows={(data as any).comparisonTable.map((r: any) => [
-                        r.product,
-                        fmtNum(r.qtyCurr),
-                        fmtNum(r.qtyPrev),
-                        fmtNum(r.qtyDelta),
-                        fmtPct(r.qtyDeltaPct),
-                        fmtMoney(r.salesCurr),
-                        fmtMoney(r.salesPrev),
-                        fmtMoney(r.salesDelta),
-                        fmtPct(r.salesDeltaPct),
-                      ])}
-                    />
+                    <div style={{ 
+                      background: 'white', 
+                      borderRadius: '8px', 
+                      overflow: 'hidden',
+                      border: '1px solid var(--p-color-border)'
+                    }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ background: 'var(--p-color-bg-surface-secondary)' }}>
+                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid var(--p-color-border)', fontWeight: '600', fontSize: '14px' }}>Product</th>
+                            <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border)', fontWeight: '600', fontSize: '14px' }}>Qty (Curr)</th>
+                            <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border)', fontWeight: '600', fontSize: '14px' }}>Qty (Prev)</th>
+                            <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border)', fontWeight: '600', fontSize: '14px' }}>Qty Δ</th>
+                            <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border)', fontWeight: '600', fontSize: '14px' }}>Qty Δ%</th>
+                            <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border)', fontWeight: '600', fontSize: '14px' }}>Sales (Curr)</th>
+                            <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border)', fontWeight: '600', fontSize: '14px' }}>Sales (Prev)</th>
+                            <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border)', fontWeight: '600', fontSize: '14px' }}>Sales Δ</th>
+                            <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border)', fontWeight: '600', fontSize: '14px' }}>Sales Δ%</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {((data as any).comparisonTable as any[]).map((r: any, index: number) => (
+                            <tr key={index} style={{ borderBottom: '1px solid var(--p-color-border-subdued)' }}>
+                              <td style={{ 
+                                padding: '12px', 
+                                borderBottom: '1px solid var(--p-color-border-subdued)',
+                                position: 'relative',
+                                cursor: r.productSku ? 'help' : 'default'
+                              }}
+                              title={r.productSku ? `SKU: ${r.productSku}` : undefined}
+                              >
+                                <div style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center',
+                                  gap: '8px'
+                                }}>
+                                  <span style={{ fontWeight: '500' }}>{r.product}</span>
+                                  {r.productSku && (
+                                    <span style={{ 
+                                      background: 'var(--p-color-bg-surface-secondary)',
+                                      color: 'var(--p-color-text-subdued)',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      fontSize: '11px',
+                                      fontFamily: 'monospace'
+                                    }}>
+                                      {r.productSku}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border-subdued)' }}>{fmtNum(r.qtyCurr)}</td>
+                              <td style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border-subdued)' }}>{fmtNum(r.qtyPrev)}</td>
+                              <td style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border-subdued)' }}>{fmtNum(r.qtyDelta)}</td>
+                              <td style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border-subdued)' }}>{fmtPct(r.qtyDeltaPct)}</td>
+                              <td style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border-subdued)' }}>{fmtMoney(r.salesCurr)}</td>
+                              <td style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border-subdued)' }}>{fmtMoney(r.salesPrev)}</td>
+                              <td style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border-subdued)' }}>{fmtMoney(r.salesDelta)}</td>
+                              <td style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--p-color-border-subdued)' }}>{fmtPct(r.salesDeltaPct)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </>
