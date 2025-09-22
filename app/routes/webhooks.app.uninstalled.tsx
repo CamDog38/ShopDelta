@@ -1,16 +1,21 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
-import { authenticate } from "../shopify.server";
-import db from "../db.server";
+import { authenticate, sessionStorage } from "../shopify.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, session, topic } = await authenticate.webhook(request);
 
   console.log(`Received ${topic} webhook for ${shop}`);
 
-  // Webhook requests can trigger multiple times and after an app has already been uninstalled.
-  // If this webhook already ran, the session may have been deleted previously.
-  if (session) {
-    await db.session.deleteMany({ where: { shop } });
+  // Delete all sessions for this shop from Redis-backed storage (idempotent)
+  try {
+    // Available in @shopify/shopify-app-session-storage v3+; for older versions this is a no-op
+    // @ts-ignore
+    if (typeof (sessionStorage as any).deleteShopSessions === "function") {
+      // @ts-ignore
+      await (sessionStorage as any).deleteShopSessions(shop);
+    }
+  } catch (e) {
+    console.warn("Failed to delete shop sessions on uninstall:", e);
   }
 
   return new Response();
