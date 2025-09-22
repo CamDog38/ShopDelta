@@ -50,8 +50,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const query = `#graphql
       query ExportOrders($first: Int!, $search: String, $after: String) {
         orders(first: $first, after: $after, sortKey: PROCESSED_AT, reverse: true, query: $search) {
-          pageInfo { hasNextPage endCursor }
+          pageInfo { hasNextPage }
           edges {
+            cursor
             node {
               id
               name
@@ -83,7 +84,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const newEdges = page?.edges ?? [];
         edges.push(...newEdges);
         if (page?.pageInfo?.hasNextPage) {
-          after = page.pageInfo.endCursor as string;
+          after = newEdges.length ? (newEdges[newEdges.length - 1]?.cursor as string) : null;
         } else {
           break;
         }

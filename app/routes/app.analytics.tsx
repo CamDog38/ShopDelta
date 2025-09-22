@@ -94,23 +94,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const query = `#graphql
     query AnalyticsRecentOrders($first: Int!, $search: String, $after: String) {
       orders(first: $first, after: $after, sortKey: PROCESSED_AT, reverse: true, query: $search) {
-        pageInfo { hasNextPage endCursor }
+        pageInfo { hasNextPage }
         edges {
           cursor
           node {
-          id
-          name
-          processedAt
-          lineItems(first: 100) {
-            edges {
-              node {
-                quantity
-                # Using title directly from the line item avoids requiring read_products scope
-                title
-                discountedTotalSet { shopMoney { amount currencyCode } }
-                product {
-                  id
+            id
+            name
+            processedAt
+            lineItems(first: 100) {
+              edges {
+                node {
+                  quantity
                   title
+                  discountedTotalSet { shopMoney { amount currencyCode } }
+                  product { id title }
                 }
               }
             }
@@ -145,7 +142,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       const newEdges = page?.edges ?? [];
       edges.push(...newEdges);
       if (page?.pageInfo?.hasNextPage) {
-        after = page.pageInfo.endCursor as string;
+        after = newEdges.length ? (newEdges[newEdges.length - 1]?.cursor as string) : null;
       } else {
         break;
       }
