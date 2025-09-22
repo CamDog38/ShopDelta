@@ -1,32 +1,16 @@
 import "@shopify/shopify-app-remix/adapters/node";
 import { ApiVersion, AppDistribution, shopifyApp } from "@shopify/shopify-app-remix/server";
-import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
-let RedisSessionStorage: any = null;
-try {
-  // Optional dependency; only used in production when configured
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  RedisSessionStorage = require("@shopify/shopify-app-session-storage-redis").RedisSessionStorage;
-} catch {}
+import { RedisSessionStorage } from "@shopify/shopify-app-session-storage-redis";
+
 function buildSessionStorage() {
-  const useRedis = !!(process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL);
-  if (useRedis && RedisSessionStorage) {
-    const url = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL!;
-    const token = process.env.REDIS_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.REDIS_PASSWORD;
-    try {
-      return new RedisSessionStorage({
-        connection: token ? { url, token } : { url },
-      });
-    } catch (e) {
-      // Fallback to Prisma if Redis misconfigured
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const prisma = require("./db.server").default;
-      return new PrismaSessionStorage(prisma);
-    }
+  const url = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.REDIS_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.REDIS_PASSWORD;
+  if (!url) {
+    throw new Error("Missing Redis connection: set REDIS_URL or UPSTASH_REDIS_REST_URL");
   }
-  // Lazy import prisma only if needed
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const prisma = require("./db.server").default;
-  return new PrismaSessionStorage(prisma);
+  return new RedisSessionStorage({
+    connection: token ? { url, token } : { url },
+  });
 }
 
 const shopify = shopifyApp({
