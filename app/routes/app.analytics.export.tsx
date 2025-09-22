@@ -146,6 +146,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     Array.from(buckets.entries()).sort((a,b)=> a[0]>b[0]?1:-1).forEach(([_, v])=>{
       s1.addRow([v.label, v.qty, v.sales]);
     });
+    // Qty as integer, Sales as accounting format
+    s1.getColumn(2).numFmt = "#,##0";
+    s1.getColumn(3).numFmt = "#,##0.00";
 
     // Sheet 2: Sales over time by product (qty pivot top 20)
     const s2 = wb.addWorksheet("ByProduct_Qty");
@@ -172,6 +175,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       if (i===0) s4.addRow(["Product", "Sales"]).font = hdrStyle as any;
       s4.addRow([productSet.get(pid)||pid, s]);
     });
+    s4.getColumn(2).numFmt = "#,##0.00";
 
     // Sheet 5+: Comparisons
     // MoM Aggregate pairs
@@ -193,6 +197,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const sd = B.sales - A.sales; const sdp = A.sales ? (sd/A.sales)*100 : null;
         s5.addRow([`${A.label} → ${B.label}`, B.qty, A.qty, qd, qdp ?? "", B.sales, A.sales, sd, sdp ?? ""]);
       }
+      s5.getColumn(2).numFmt = "#,##0"; // Qty Curr
+      s5.getColumn(3).numFmt = "#,##0"; // Qty Prev
+      s5.getColumn(4).numFmt = "#,##0"; // Qty Δ
+      s5.getColumn(6).numFmt = "#,##0.00"; // Sales Curr
+      s5.getColumn(7).numFmt = "#,##0.00"; // Sales Prev
+      s5.getColumn(8).numFmt = "#,##0.00"; // Sales Δ
 
       // MoM By Product
       if (compareScope === "product") {
@@ -220,6 +230,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           const sd = b.sales - a.sales; const sdp = a.sales ? (sd/a.sales)*100 : null;
           s6.addRow([a.title, b.qty, a.qty, qd, qdp ?? "", b.sales, a.sales, sd, sdp ?? ""]);
         }
+        s6.getColumn(2).numFmt = "#,##0";
+        s6.getColumn(3).numFmt = "#,##0";
+        s6.getColumn(4).numFmt = "#,##0";
+        s6.getColumn(6).numFmt = "#,##0.00";
+        s6.getColumn(7).numFmt = "#,##0.00";
+        s6.getColumn(8).numFmt = "#,##0.00";
       }
     }
 
@@ -233,6 +249,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       const totalSales = Array.from(buckets.values()).reduce((a,b)=>a+b.sales,0);
       yoy.addRow(["Quantity", totalQty, "", "", ""]);
       yoy.addRow(["Sales", totalSales, "", "", ""]);
+      yoy.getColumn(2).numFmt = "#,##0.00";
     }
 
     const buf = await wb.xlsx.writeBuffer(); // returns ArrayBuffer in browsers / Uint8Array in Node

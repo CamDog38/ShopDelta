@@ -670,8 +670,11 @@ export default function AnalyticsPage() {
   const fmtPct = (n: number | null | undefined) => (n == null ? "–" : `${n.toFixed(1)}%`);
   const fmtMoney = (n: number | null | undefined) => {
     const v = Number(n ?? 0);
-    if (totals?.currency) return `${totals.currency} ${v.toFixed(2)}`;
-    return v.toFixed(2);
+    const formatted = new Intl.NumberFormat(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(v);
+    return totals?.currency ? `${totals.currency} ${formatted}` : formatted;
   };
 
   const onFilterChange = (e?: React.FormEvent<HTMLFormElement>) => {
@@ -1025,8 +1028,8 @@ export default function AnalyticsPage() {
         {filters?.view === "summary" && (
           <>
             <Text as="h2" variant="headingMd">Summary</Text>
-            <Text as="p" variant="bodyMd">Total quantity: {totals?.qty ?? 0}</Text>
-            <Text as="p" variant="bodyMd">Total sales: {totals?.currency ? `${totals.currency} ` : ""}{totals ? totals.sales.toFixed(2) : "0.00"}</Text>
+            <Text as="p" variant="bodyMd">Total quantity: {fmtNum(totals?.qty)}</Text>
+            <Text as="p" variant="bodyMd">Total sales: {fmtMoney(totals?.sales)}</Text>
 
             <Text as="h3" variant="headingSm" tone="subdued">Top 10 products by quantity</Text>
             <DataTable
@@ -1039,7 +1042,7 @@ export default function AnalyticsPage() {
             <DataTable
               columnContentTypes={["numeric", "text", "numeric"]}
               headings={["#", "Product", "Sales"]}
-              rows={topBySales.map((p, i) => [String(i + 1), p.title, (totals?.currency ? `${totals.currency} ` : "") + p.sales.toFixed(2)])}
+              rows={topBySales.map((p, i) => [String(i + 1), p.title, fmtMoney(p.sales)])}
             />
           </>
         )}
