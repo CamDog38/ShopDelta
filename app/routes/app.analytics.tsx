@@ -426,24 +426,63 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           }
           comparisonTable = rows;
         } else {
-          // Default aggregate single-period compare (YoY)
-          comparisonHeaders = ["Metric", "Current", "Previous", "Change", "% Change"];
-          comparisonTable = [
-            {
-              metric: "Quantity",
-              current: totalQty,
-              previous: prevQty,
-              change: totalQty - prevQty,
-              changePct: prevQty ? (((totalQty - prevQty) / prevQty) * 100).toFixed(1) + "%" : "–",
-            },
-            {
-              metric: "Sales",
-              current: totalSales,
-              previous: prevSales,
-              change: totalSales - prevSales,
-              changePct: prevSales ? (((totalSales - prevSales) / prevSales) * 100).toFixed(1) + "%" : "–",
-            },
-          ];
+          // Year-on-Year: show monthly breakdown (Jan 2024 vs Jan 2025, etc.)
+          // Build monthly totals for current period from buckets map
+          const monthlyCurr = new Map<string, { label: string; qty: number; sales: number }>();
+          for (const [key, info] of buckets.entries()) {
+            // derive month key YYYY-MM from bucket key/label
+            let mKey = key;
+            if (!/^\d{4}-\d{2}$/.test(mKey)) {
+              const m = (key.match(/^(\d{4})-(\d{2})/) || info.label.match(/(\d{4})-(\d{2})/));
+              if (m) mKey = `${m[1]}-${m[2]}`; else continue;
+            }
+            const [y, mm] = mKey.split('-').map((x)=>parseInt(x,10));
+            const d = new Date(Date.UTC(y, mm-1, 1));
+            const label = `${d.toLocaleString("en-US", { month: "short" })} ${y}`;
+            if (!monthlyCurr.has(mKey)) monthlyCurr.set(mKey, { label, qty: 0, sales: 0 });
+            const acc = monthlyCurr.get(mKey)!;
+            acc.qty += info.quantity;
+            acc.sales += (bucketSales.get(key) || 0);
+          }
+
+          // Build monthly totals for previous period from prevEdges
+          const monthlyPrev = new Map<string, { qty: number; sales: number }>();
+          for (const e of prevEdges) {
+            const d = new Date(e?.node?.processedAt);
+            const mKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
+            if (!monthlyPrev.has(mKey)) monthlyPrev.set(mKey, { qty: 0, sales: 0 });
+            const liEdges = e?.node?.lineItems?.edges ?? [];
+            for (const li of liEdges) {
+              const q = li?.node?.quantity ?? 0;
+              const amountStr: string | undefined = li?.node?.discountedTotalSet?.shopMoney?.amount as any;
+              const amt = amountStr ? parseFloat(amountStr) : 0;
+              const acc = monthlyPrev.get(mKey)!;
+              acc.qty += q; acc.sales += amt;
+            }
+          }
+
+          // Align months by label (current period months shown; previous uses same month of prior year)
+          const ordered = Array.from(monthlyCurr.entries()).sort((a,b)=> (a[0] > b[0] ? 1 : -1));
+          comparisonHeaders = ["Period","Qty (Curr)","Qty (Prev)","Qty Δ","Qty Δ%","Sales (Curr)","Sales (Prev)","Sales Δ","Sales Δ%"]; 
+          const rows: Array<Record<string, any>> = [];
+          for (const [mKey, curr] of ordered) {
+            // Find corresponding month in previous-year map: subtract 1 year
+            const [y, mm] = mKey.split('-').map((x)=>parseInt(x,10));
+            const prevKey = `${y-1}-${String(mm).padStart(2,'0')}`;
+            const prev = monthlyPrev.get(prevKey) || { qty: 0, sales: 0 };
+            rows.push({
+              period: curr.label,
+              qtyCurr: curr.qty,
+              qtyPrev: prev.qty,
+              qtyDelta: curr.qty - prev.qty,
+              qtyDeltaPct: prev.qty ? (((curr.qty - prev.qty) / prev.qty) * 100) : null,
+              salesCurr: curr.sales,
+              salesPrev: prev.sales,
+              salesDelta: curr.sales - prev.sales,
+              salesDeltaPct: prev.sales ? (((curr.sales - prev.sales) / prev.sales) * 100) : null,
+            });
+          }
+          comparisonTable = rows;
         }
       } else {
         // by product
@@ -1138,17 +1177,37 @@ export default function AnalyticsPage() {
                   )}
                   {filters?.compareScope === "aggregate" && filters?.compare === 'yoy' && (
                     <div className="analytics-table-sticky">
-                    <DataTable
-                      columnContentTypes={["text","numeric","numeric","numeric","text"]}
-                      headings={["Metric","Current","Previous","Change","% Change"]}
-                      rows={(data as any).comparisonTable.map((r: any) => [
-                        r.metric,
-                        r.metric === "Sales" ? fmtMoney(r.current) : fmtNum(r.current),
-                        r.metric === "Sales" ? fmtMoney(r.previous) : fmtNum(r.previous),
-                        r.metric === "Sales" ? fmtMoney(r.change) : fmtNum(r.change),
-                        typeof r.changePct === "string" ? r.changePct : fmtPct(r.changePct as number | null | undefined),
-                      ])}
-                    />
+                    {Array.isArray((data as any).comparisonTable) && (data as any).comparisonTable.length > 0 && !("metric" in (data as any).comparisonTable[0]) ? (
+                      // Monthly YoY rows
+                      <DataTable
+                        columnContentTypes={["text","numeric","numeric","numeric","text","numeric","numeric","numeric","text"]}
+                        headings={comparisonHeaders || ["Period","Qty (Curr)","Qty (Prev)","Qty Δ","Qty Δ%","Sales (Curr)","Sales (Prev)","Sales Δ","Sales Δ%"]}
+                        rows={(data as any).comparisonTable.map((r: any) => [
+                          r.period,
+                          fmtNum(r.qtyCurr),
+                          fmtNum(r.qtyPrev),
+                          fmtNum(r.qtyDelta),
+                          fmtPct(r.qtyDeltaPct),
+                          fmtMoney(r.salesCurr),
+                          fmtMoney(r.salesPrev),
+                          fmtMoney(r.salesDelta),
+                          fmtPct(r.salesDeltaPct),
+                        ])}
+                      />
+                    ) : (
+                      // Fallback to metric aggregate table
+                      <DataTable
+                        columnContentTypes={["text","numeric","numeric","numeric","text"]}
+                        headings={["Metric","Current","Previous","Change","% Change"]}
+                        rows={(data as any).comparisonTable.map((r: any) => [
+                          r.metric,
+                          r.metric === "Sales" ? fmtMoney(r.current) : fmtNum(r.current),
+                          r.metric === "Sales" ? fmtMoney(r.previous) : fmtNum(r.previous),
+                          r.metric === "Sales" ? fmtMoney(r.change) : fmtNum(r.change),
+                          typeof r.changePct === "string" ? r.changePct : fmtPct(r.changePct as number | null | undefined),
+                        ])}
+                      />
+                    )}
                     </div>
                   )}
 
