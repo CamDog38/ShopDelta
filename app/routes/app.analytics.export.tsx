@@ -46,10 +46,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
     }
 
-    // GraphQL query
+    // GraphQL query with pagination
     const query = `#graphql
-      query ExportOrders($first: Int!, $search: String) {
-        orders(first: $first, sortKey: PROCESSED_AT, reverse: true, query: $search) {
+      query ExportOrders($first: Int!, $search: String, $after: String) {
+        orders(first: $first, after: $after, sortKey: PROCESSED_AT, reverse: true, query: $search) {
+          pageInfo { hasNextPage endCursor }
           edges {
             node {
               id
@@ -71,14 +72,25 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
     `;
     const search = `processed_at:>='${start!.toISOString()}' processed_at:<='${end!.toISOString()}'`;
-    let data: any;
+    // Fetch all pages
+    const edges: any[] = [];
     try {
-      const response = await admin.graphql(query, { variables: { first: 250, search } });
-      data = await response.json();
+      let after: string | null = null;
+      while (true) {
+        const response = await admin.graphql(query, { variables: { first: 250, search, after } });
+        const data = await response.json();
+        const page = data?.data?.orders;
+        const newEdges = page?.edges ?? [];
+        edges.push(...newEdges);
+        if (page?.pageInfo?.hasNextPage) {
+          after = page.pageInfo.endCursor as string;
+        } else {
+          break;
+        }
+      }
     } catch (gerr: any) {
       return json({ error: "GraphQL request failed", details: gerr?.message || String(gerr) }, { status: 500 });
     }
-    const edges = data?.data?.orders?.edges ?? [];
 
     // Aggregations
     const buckets = new Map<string, { label: string; qty: number; sales: number }>();
@@ -100,6 +112,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         return { key, label: `Week of ${ws.toLocaleDateString('en-CA')}` };
       }
       return { key: d.toISOString().slice(0,10), label: d.toLocaleDateString('en-CA') };
+    }
+
+    // Pre-fill monthly buckets across the selected range so empty months appear
+    if (granParam === "month") {
+      const mStart = new Date(Date.UTC(start!.getUTCFullYear(), start!.getUTCMonth(), 1));
+      const mEnd = new Date(Date.UTC(end!.getUTCFullYear(), end!.getUTCMonth(), 1));
+      const cur = new Date(mStart);
+      while (cur <= mEnd) {
+        const k = `${cur.getUTCFullYear()}-${String(cur.getUTCMonth()+1).padStart(2,'0')}`;
+        const label = `${cur.toLocaleString('en-US',{month:'short'})} ${cur.getUTCFullYear()}`;
+        if (!buckets.has(k)) buckets.set(k, { label, qty: 0, sales: 0 });
+        if (!pivot.has(k)) pivot.set(k, new Map());
+        cur.setUTCMonth(cur.getUTCMonth()+1);
+      }
     }
 
     for (const edge of edges) {

@@ -1,6 +1,7 @@
 import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useLocation, useRouteError, useSubmit } from "@remix-run/react";
+import { useLoaderData, useLocation, useRouteError, useSubmit, useNavigation } from "@remix-run/react";
+import { useState } from "react";
 import { Page, DataTable, BlockStack, Text, Link, Button, InlineStack } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -91,24 +92,25 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Query recent orders in a window and pull line items (quantity + discounted totals)
   const query = `#graphql
-    query AnalyticsRecentOrders($first: Int!, $search: String) {
-      orders(first: $first, sortKey: PROCESSED_AT, reverse: true, query: $search) {
+    query AnalyticsRecentOrders($first: Int!, $search: String, $after: String) {
+      orders(first: $first, after: $after, sortKey: PROCESSED_AT, reverse: true, query: $search) {
+        pageInfo { hasNextPage endCursor }
         edges {
+          cursor
           node {
-            id
-            name
-            processedAt
-            lineItems(first: 100) {
-              edges {
-                node {
-                  quantity
-                  # Using title directly from the line item avoids requiring read_products scope
+          id
+          name
+          processedAt
+          lineItems(first: 100) {
+            edges {
+              node {
+                quantity
+                # Using title directly from the line item avoids requiring read_products scope
+                title
+                discountedTotalSet { shopMoney { amount currencyCode } }
+                product {
+                  id
                   title
-                  discountedTotalSet { shopMoney { amount currencyCode } }
-                  product {
-                    id
-                    title
-                  }
                 }
               }
             }
@@ -124,27 +126,31 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // Build search term for processedAt range
     const search = `processed_at:>='${start!.toISOString()}' processed_at:<='${end!.toISOString()}'`;
     dlog("Fetching recent orders... shop=", session.shop, "range=", start, end, "gran=", granParam);
-    const response = await admin.graphql(query, { variables: { first: 250, search } });
-    const data = await response.json();
-    dlog("GraphQL status:", (response as any).status, "keys:", Object.keys(data || {}));
-
-    // If the Admin API returned GraphQL errors, surface them
-    const gqlErrors = (data && data.errors) || (data && data.data && data.data.errors);
-    if (gqlErrors && Array.isArray(gqlErrors) && gqlErrors.length > 0) {
-      dlog("GraphQL errors:", gqlErrors);
-      return json(
-        {
-          error: "GRAPHQL_ERROR",
-          message: gqlErrors[0]?.message || "GraphQL error",
-          details: gqlErrors,
-          shop: session.shop,
-        },
-        { status: 200 },
-      );
+    // Paginate through all orders within the date range
+    let after: string | null = null;
+    const edges: any[] = [];
+    while (true) {
+      const response = await admin.graphql(query, { variables: { first: 250, search, after } });
+      const data = await response.json();
+      dlog("GraphQL status:", (response as any).status, "keys:", Object.keys(data || {}));
+      const gqlErrors = (data && data.errors) || (data && data.data && data.data.errors);
+      if (gqlErrors && Array.isArray(gqlErrors) && gqlErrors.length > 0) {
+        dlog("GraphQL errors:", gqlErrors);
+        return json(
+          { error: "GRAPHQL_ERROR", message: gqlErrors[0]?.message || "GraphQL error", details: gqlErrors, shop: session.shop },
+          { status: 200 },
+        );
+      }
+      const page = data?.data?.orders;
+      const newEdges = page?.edges ?? [];
+      edges.push(...newEdges);
+      if (page?.pageInfo?.hasNextPage) {
+        after = page.pageInfo.endCursor as string;
+      } else {
+        break;
+      }
     }
-
-    const edges = data?.data?.orders?.edges ?? [];
-    dlog("Orders returned:", edges.length);
+    dlog("Orders returned (all pages):", edges.length);
 
     // Existing: Top products overall in period
     const counts = new Map<string, { title: string; quantity: number }>();
@@ -178,6 +184,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       const key = fmtYMD(d);
       const label = d.toLocaleDateString("en-CA");
       return { key, label };
+    }
+
+    // Pre-fill month buckets across the selected range so empty months appear
+    if (granParam === "month") {
+      const mStart = startOfMonth(start!);
+      const mEnd = startOfMonth(end!);
+      const cur = new Date(mStart);
+      while (cur <= mEnd) {
+        const key = `${cur.getUTCFullYear()}-${String(cur.getUTCMonth() + 1).padStart(2, "0")}`;
+        const label = `${cur.toLocaleString("en-US", { month: "short" })} ${cur.getUTCFullYear()}`;
+        if (!buckets.has(key)) buckets.set(key, { label, quantity: 0 });
+        if (!bucketSales.has(key)) bucketSales.set(key, 0);
+        cur.setUTCMonth(cur.getUTCMonth() + 1);
+      }
     }
 
     for (const edge of edges) {
@@ -577,6 +597,9 @@ export default function AnalyticsPage() {
   const data = useLoaderData<typeof loader>();
   const location = useLocation();
   const submit = useSubmit();
+  const navigation = useNavigation();
+  const isNavLoading = navigation.state !== "idle";
+  const [isExporting, setIsExporting] = useState(false);
   // Handle known error cases with helpful actions
   const errType = (data as any).error as string | undefined;
   if (errType === "ACCESS_DENIED") {
@@ -687,6 +710,7 @@ export default function AnalyticsPage() {
 
   // Build export URL with current filters and open in a new tab
   const exportWorkbook = () => {
+    setIsExporting(true);
     const form = document.getElementById("filters-form") as HTMLFormElement | null;
     const fd = form ? new FormData(form) : new FormData();
     // Ensure compare/momA/momB/compareScope persist
@@ -709,6 +733,8 @@ export default function AnalyticsPage() {
     document.body.appendChild(formEl);
     formEl.submit();
     document.body.removeChild(formEl);
+    // Brief loading indicator
+    window.setTimeout(() => setIsExporting(false), 1500);
   };
 
   // Precompute strongly-typed table config for Table view
