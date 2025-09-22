@@ -2,7 +2,7 @@ import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, useLocation, useRouteError, useSubmit, useNavigation } from "@remix-run/react";
 import { useState } from "react";
-import { Page, DataTable, BlockStack, Text, Link, Button, InlineStack } from "@shopify/polaris";
+import { Page, DataTable, BlockStack, Text, Link, Button, InlineStack, Spinner } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import analyticsStylesUrl from "../styles/analytics.css?url";
@@ -705,6 +705,9 @@ export default function AnalyticsPage() {
   const comparison = (data as any).comparison as
     | { mode: string; current: { qty: number; sales: number }; previous: { qty: number; sales: number }; deltas: { qty: number; qtyPct: number | null; sales: number; salesPct: number | null }; prevRange: { start: string; end: string } }
     | null;
+  const comparisonHeaders = Array.isArray((data as any).comparisonHeaders)
+    ? ((data as any).comparisonHeaders as string[])
+    : undefined;
   const headers = Array.isArray((data as any).headers)
     ? ((data as any).headers as Array<{ id: string; title: string }>)
     : [];
@@ -865,19 +868,27 @@ export default function AnalyticsPage() {
                 <option value="month">Month</option>
               </select>
             </label>
-            <div className="analytics-apply"><Button submit variant="primary">Apply</Button></div>
+            <div className="analytics-apply"><Button submit variant="primary" disabled={isNavLoading} loading={isNavLoading}>Apply</Button></div>
           </InlineStack>
+          {isNavLoading && (
+            <div style={{ marginTop: 8 }}>
+              <InlineStack gap="100" align="start">
+                <Spinner accessibilityLabel="Loading analytics" size="small" />
+                <Text as="span" variant="bodySm">Loading…</Text>
+              </InlineStack>
+            </div>
+          )}
           </div>
         </form>
 
         {/* Tabs */}
         <InlineStack gap="200" wrap>
-          <Button onClick={() => changeView("chart")} variant={filters?.view === "chart" || !filters?.view ? "primary" : undefined}>Chart</Button>
-          <Button onClick={() => changeView("table")} variant={filters?.view === "table" ? "primary" : undefined}>Table</Button>
-          <Button onClick={() => changeView("summary")} variant={filters?.view === "summary" ? "primary" : undefined}>Summary</Button>
-          <Button onClick={() => changeView("compare")} variant={filters?.view === "compare" ? "primary" : undefined}>Comparison</Button>
+          <Button onClick={() => changeView("chart")} variant={filters?.view === "chart" || !filters?.view ? "primary" : undefined} disabled={isNavLoading} loading={isNavLoading && (filters?.view !== "chart")}>Chart</Button>
+          <Button onClick={() => changeView("table")} variant={filters?.view === "table" ? "primary" : undefined} disabled={isNavLoading} loading={isNavLoading && (filters?.view !== "table")}>Table</Button>
+          <Button onClick={() => changeView("summary")} variant={filters?.view === "summary" ? "primary" : undefined} disabled={isNavLoading} loading={isNavLoading && (filters?.view !== "summary")}>Summary</Button>
+          <Button onClick={() => changeView("compare")} variant={filters?.view === "compare" ? "primary" : undefined} disabled={isNavLoading} loading={isNavLoading && (filters?.view !== "compare")}>Comparison</Button>
           <span className="spacer-16" />
-          <Button onClick={exportWorkbook}>Export (Excel)</Button>
+          <Button onClick={exportWorkbook} disabled={isNavLoading || isExporting} loading={isExporting}>Export (Excel)</Button>
         </InlineStack>
 
         {/* Chart view */}
@@ -888,14 +899,14 @@ export default function AnalyticsPage() {
                 <Text as="h2" variant="headingMd">{(filters?.metric || 'qty') === 'sales' ? 'Sales' : 'Quantity'} over time</Text>
                 <div className="analytics-segmented">
                 <InlineStack gap="100">
-                  <Button onClick={() => applyPatch({ view: 'chart', metric: 'qty' })} variant={(filters?.metric || 'qty') === 'qty' ? 'primary' : undefined}>Qty</Button>
-                  <Button onClick={() => applyPatch({ view: 'chart', metric: 'sales' })} variant={(filters?.metric || 'qty') === 'sales' ? 'primary' : undefined}>Sales</Button>
+                  <Button onClick={() => applyPatch({ view: 'chart', metric: 'qty' })} variant={(filters?.metric || 'qty') === 'qty' ? 'primary' : undefined} disabled={isNavLoading} loading={isNavLoading && (filters?.metric !== 'qty')}>Qty</Button>
+                  <Button onClick={() => applyPatch({ view: 'chart', metric: 'sales' })} variant={(filters?.metric || 'qty') === 'sales' ? 'primary' : undefined} disabled={isNavLoading} loading={isNavLoading && (filters?.metric !== 'sales')}>Sales</Button>
                   <span className="spacer-12" />
-                  <Button onClick={() => applyPatch({ view: 'chart', chartScope: 'aggregate' })} variant={(filters?.chartScope || 'aggregate') === 'aggregate' ? 'primary' : undefined}>Aggregate</Button>
-                  <Button onClick={() => applyPatch({ view: 'chart', chartScope: 'product' })} variant={filters?.chartScope === 'product' ? 'primary' : undefined}>By product</Button>
+                  <Button onClick={() => applyPatch({ view: 'chart', chartScope: 'aggregate' })} variant={(filters?.chartScope || 'aggregate') === 'aggregate' ? 'primary' : undefined} disabled={isNavLoading} loading={isNavLoading && (filters?.chartScope !== 'aggregate')}>Aggregate</Button>
+                  <Button onClick={() => applyPatch({ view: 'chart', chartScope: 'product' })} variant={filters?.chartScope === 'product' ? 'primary' : undefined} disabled={isNavLoading} loading={isNavLoading && (filters?.chartScope !== 'product')}>By product</Button>
                   <span className="spacer-12" />
-                  <Button onClick={() => changeChart("bar")} variant={chartType === "bar" ? "primary" : undefined}>Bar</Button>
-                  <Button onClick={() => changeChart("line")} variant={chartType === "line" ? "primary" : undefined}>Line</Button>
+                  <Button onClick={() => changeChart("bar")} variant={chartType === "bar" ? "primary" : undefined} disabled={isNavLoading} loading={isNavLoading && (chartType !== 'bar')}>Bar</Button>
+                  <Button onClick={() => changeChart("line")} variant={chartType === "line" ? "primary" : undefined} disabled={isNavLoading} loading={isNavLoading && (chartType !== 'line')}>Line</Button>
                 </InlineStack>
                 </div>
               </div>
@@ -1108,51 +1119,36 @@ export default function AnalyticsPage() {
             />
           </>
         )}
-
-        {/* Comparison view */}
         {filters?.view === "compare" && (
           <>
-            <InlineStack gap="200" wrap>
-              <Button onClick={() => changeCompare("none")} variant={filters?.compare === "none" ? "primary" : undefined}>None</Button>
-              <Button onClick={() => changeCompare("mom")} variant={filters?.compare === "mom" ? "primary" : undefined}>Month-on-Month</Button>
-              <Button onClick={() => changeCompare("yoy")} variant={filters?.compare === "yoy" ? "primary" : undefined}>Year-on-Year</Button>
-              <span className="spacer-16" />
-              <Button onClick={() => { const fd = new FormData(document.getElementById("filters-form") as HTMLFormElement); fd.set("view","compare"); fd.set("compareScope","aggregate"); submit(fd,{method:"get"}); }} variant={filters?.compareScope === "aggregate" ? "primary" : undefined}>Aggregated</Button>
-              <Button onClick={() => { const fd = new FormData(document.getElementById("filters-form") as HTMLFormElement); fd.set("view","compare"); fd.set("compareScope","product"); submit(fd,{method:"get"}); }} variant={filters?.compareScope === "product" ? "primary" : undefined}>By product</Button>
-            </InlineStack>
-            <BlockStack gap="200">
-              <Text as="h2" variant="headingMd">Comparison</Text>
-              {/* MoM month selectors */}
-              {filters?.compare === 'mom' && (filters?.compareScope === 'aggregate' || filters?.compareScope === 'product') && (
-                <div className="analytics-compare-selectors">
-                <InlineStack gap="200" wrap>
-                  <label className="inline-label">
-                    <span className="legend-label">Month A</span>
-                    <select id="momA" defaultValue={filters?.momA || ''}>
-                      <option value="">(auto)</option>
-                      {momMonths.map((m) => (
-                        <option key={m.key} value={m.key}>{m.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="inline-label">
-                    <span className="legend-label">Month B</span>
-                    <select id="momB" defaultValue={filters?.momB || ''}>
-                      <option value="">(auto next)</option>
-                      {momMonths.map((m) => (
-                        <option key={m.key} value={m.key}>{m.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="analytics-compare-apply"><Button onClick={() => {
-                    const a = (document.getElementById('momA') as HTMLSelectElement | null)?.value || '';
-                    const b = (document.getElementById('momB') as HTMLSelectElement | null)?.value || '';
-                    const scope = (filters?.compareScope as string) || 'aggregate';
-                    applyPatch({ view: 'compare', compare: 'mom', compareScope: scope, momA: a, momB: b });
-                  }} variant="primary">Apply</Button></div>
-                </InlineStack>
-                </div>
-              )}
+            <div className="analytics-compare-controls">
+              <InlineStack gap="200" wrap>
+                <label className="inline-label">
+                  <span className="legend-label">Month A</span>
+                  <select id="momA" defaultValue={filters?.momA || ''}>
+                    <option value="">(auto)</option>
+                    {momMonths.map((m) => (
+                      <option key={m.key} value={m.key}>{m.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="inline-label">
+                  <span className="legend-label">Month B</span>
+                  <select id="momB" defaultValue={filters?.momB || ''}>
+                    <option value="">(auto next)</option>
+                    {momMonths.map((m) => (
+                      <option key={m.key} value={m.key}>{m.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="analytics-compare-apply"><Button onClick={() => {
+                  const a = (document.getElementById('momA') as HTMLSelectElement | null)?.value || '';
+                  const b = (document.getElementById('momB') as HTMLSelectElement | null)?.value || '';
+                  const scope = (filters?.compareScope as string) || 'aggregate';
+                  applyPatch({ view: 'compare', compare: 'mom', compareScope: scope, momA: a, momB: b });
+                }} variant="primary" disabled={isNavLoading} loading={isNavLoading}>Apply</Button></div>
+              </InlineStack>
+            </div>
               {!comparison && <Text as="p" variant="bodyMd">Select a comparison mode to calculate deltas.</Text>}
               {!!comparison && (
                 <>
@@ -1232,17 +1228,16 @@ export default function AnalyticsPage() {
                   )}
                 </>
               )}
-            </BlockStack>
-          </>
-        )}
-        {errType && errType !== "ACCESS_DENIED" && (
-          <Text as="p" variant="bodySm">
-            Error loading analytics: {(data as any).message || errType}
-          </Text>
-        )}
-        {/* Retain original table under Chart view as a quick glance */}
-        {/* Removed top products table from Chart view as requested */}
-      </BlockStack>
-    </Page>
-  );
-}
+            </>
+          )}
+            {errType && errType !== "ACCESS_DENIED" && (
+              <Text as="p" variant="bodySm">
+                Error loading analytics: {(data as any).message || errType}
+              </Text>
+            )}
+            {/* Retain original table under Chart view as a quick glance */}
+            {/* Removed top products table from Chart view as requested */}
+          </BlockStack>
+        </Page>
+      );
+    }
