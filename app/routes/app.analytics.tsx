@@ -1694,12 +1694,92 @@ export default function AnalyticsPage() {
                 )}
                 {filters?.compareScope === "aggregate" && filters?.compare === 'yoy' && (
                   <div style={{ background: 'var(--p-color-bg-surface)', padding: '20px', borderRadius: '12px', border: '1px solid var(--p-color-border)' }}>
-                    <div style={{ marginBottom: '16px' }}>
+                    <div style={{ marginBottom: '20px' }}>
                       <Text as="h3" variant="headingMd">📆 Year-over-Year Comparison</Text>
                       <Text as="p" variant="bodySm" tone="subdued">
                         Comparing each month in your selected period vs the same month in the previous year (e.g., Jan 2025 vs Jan 2024, Feb 2025 vs Feb 2024)
                       </Text>
                     </div>
+                    
+                    {/* YoY Summary Cards */}
+                    {comparison && (
+                      <div style={{ 
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                        padding: '20px', 
+                        borderRadius: '12px', 
+                        marginBottom: '20px',
+                        color: 'white'
+                      }}>
+                        <div style={{ color: 'white', marginBottom: '16px' }}>
+                          <Text as="h4" variant="headingSm">
+                            📊 Period Summary: {filters?.start} to {filters?.end}
+                          </Text>
+                        </div>
+                        <InlineStack gap="400" wrap>
+                          <div style={{ 
+                            background: 'rgba(255, 255, 255, 0.15)', 
+                            padding: '16px', 
+                            borderRadius: '8px',
+                            backdropFilter: 'blur(10px)',
+                            minWidth: '200px'
+                          }}>
+                            <div style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: '4px' }}>
+                              <Text as="p" variant="bodySm">📦 Total Quantity</Text>
+                            </div>
+                            <div style={{ color: 'white', marginBottom: '8px' }}>
+                              <Text as="p" variant="headingLg">{fmtNum(comparison.current.qty)}</Text>
+                            </div>
+                            <div style={{ color: 'rgba(255, 255, 255, 0.9)' }}>
+                              <Text as="p" variant="bodySm">vs {fmtNum(comparison.previous.qty)} last year</Text>
+                            </div>
+                            <div style={{ 
+                              marginTop: '8px',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              background: comparison.deltas.qty >= 0 ? 'rgba(46, 213, 115, 0.3)' : 'rgba(231, 76, 60, 0.3)',
+                              display: 'inline-block'
+                            }}>
+                              <span style={{ color: 'white', fontWeight: '600' }}>
+                                <Text as="span" variant="bodySm">
+                                  {comparison.deltas.qty >= 0 ? '↗️' : '↘️'} {fmtNum(Math.abs(comparison.deltas.qty))} ({comparison.deltas.qtyPct !== null ? fmtPct(Math.abs(comparison.deltas.qtyPct)) : '–'})
+                                </Text>
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div style={{ 
+                            background: 'rgba(255, 255, 255, 0.15)', 
+                            padding: '16px', 
+                            borderRadius: '8px',
+                            backdropFilter: 'blur(10px)',
+                            minWidth: '200px'
+                          }}>
+                            <div style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: '4px' }}>
+                              <Text as="p" variant="bodySm">💰 Total Sales</Text>
+                            </div>
+                            <div style={{ color: 'white', marginBottom: '8px' }}>
+                              <Text as="p" variant="headingLg">{fmtMoney(comparison.current.sales)}</Text>
+                            </div>
+                            <div style={{ color: 'rgba(255, 255, 255, 0.9)' }}>
+                              <Text as="p" variant="bodySm">vs {fmtMoney(comparison.previous.sales)} last year</Text>
+                            </div>
+                            <div style={{ 
+                              marginTop: '8px',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              background: comparison.deltas.sales >= 0 ? 'rgba(46, 213, 115, 0.3)' : 'rgba(231, 76, 60, 0.3)',
+                              display: 'inline-block'
+                            }}>
+                              <span style={{ color: 'white', fontWeight: '600' }}>
+                                <Text as="span" variant="bodySm">
+                                  {comparison.deltas.sales >= 0 ? '↗️' : '↘️'} {fmtMoney(Math.abs(comparison.deltas.sales))} ({comparison.deltas.salesPct !== null ? fmtPct(Math.abs(comparison.deltas.salesPct)) : '–'})
+                                </Text>
+                              </span>
+                            </div>
+                          </div>
+                        </InlineStack>
+                      </div>
+                    )}
                     {Array.isArray((data as any).comparisonTable) && (data as any).comparisonTable.length > 0 && !("metric" in (data as any).comparisonTable[0]) ? (
                       <DataTable
                         columnContentTypes={["text","numeric","numeric","numeric","text","numeric","numeric","numeric","text"]}
