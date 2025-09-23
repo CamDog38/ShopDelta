@@ -265,6 +265,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // Sheet 5+: Comparisons
     // MoM Aggregate pairs
     if (compareMode === "mom") {
+      console.log("Adding MoM comparison sheets...");
       const monthly = new Map<string, { label: string; qty: number; sales: number }>();
       for (const [key, v] of buckets.entries()) {
         let mKey = key; if (!/^\d{4}-\d{2}$/.test(mKey)) { const m = (key.match(/^(\d{4})-(\d{2})/) || v.label.match(/(\d{4})-(\d{2})/)); if (m) mKey = `${m[1]}-${m[2]}`; else continue; }
@@ -326,6 +327,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     // YoY Aggregate
     if (compareMode === "yoy") {
+      console.log("Adding YoY comparison sheet...");
       const yoy = wb.addWorksheet("YoY_Aggregate");
       yoy.addRow(["Metric","Current","Previous","Change","% Change"]).font = hdrStyle as any;
       // For simplicity use totals from buckets vs a prev-year fetch; the page computation already does prev year fetch.
