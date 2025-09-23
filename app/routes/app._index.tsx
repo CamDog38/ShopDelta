@@ -67,9 +67,9 @@ export default function AppIndex() {
               ShopDelta displays analytics based on live order data from your Shopify store. <strong>No order or customer data is stored in our systems.</strong>
             </Text>
             <div style={{ marginTop: '12px' }}>
-              <Link to="/privacy" style={{ color: '#10b981', textDecoration: 'underline' }}>
+              <a href="/public/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#10b981', textDecoration: 'underline' }}>
                 <Text as="span" variant="bodySm">View our Privacy Policy</Text>
-              </Link>
+              </a>
             </div>
           </div>
         </Card>
