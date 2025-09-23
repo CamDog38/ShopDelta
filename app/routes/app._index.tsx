@@ -51,6 +51,29 @@ export default function AppIndex() {
           </Link>
         </div>
 
+        {/* Data Use Notice */}
+        <Card>
+          <div style={{ 
+            padding: '24px', 
+            background: 'linear-gradient(135deg, #e8f5e8 0%, #f0f9ff 100%)',
+            borderRadius: '12px',
+            border: '2px solid #10b981',
+            textAlign: 'center'
+          }}>
+            <div style={{ marginBottom: '12px' }}>
+              <Text as="h3" variant="headingMd">🔒 Data Use</Text>
+            </div>
+            <Text as="p" variant="bodyLg" tone="subdued">
+              ShopDelta displays analytics based on live order data from your Shopify store. <strong>No order or customer data is stored in our systems.</strong>
+            </Text>
+            <div style={{ marginTop: '12px' }}>
+              <Link to="/privacy" style={{ color: '#10b981', textDecoration: 'underline' }}>
+                <Text as="span" variant="bodySm">View our Privacy Policy</Text>
+              </Link>
+            </div>
+          </div>
+        </Card>
+
         {/* Features Grid */}
         <BlockStack gap="400">
           <Text as="h2" variant="headingXl" alignment="center">

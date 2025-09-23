@@ -1,26 +1,49 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
 client_id = "1bfb615d6837e45ae34fb39a820c62ca"
 name = "ShopDelta"
-application_url = "https://shopdelta.vercel.app"
+application_url = "https://shopdelta.vercel.app/"
 embedded = true
 handle = "shopdelta"
 
 [webhooks]
 api_version = "2025-07"
 
+  # App lifecycle webhooks
   [[webhooks.subscriptions]]
-  topic = "app/scopes_update"
+  topics = [ "app/scopes_update" ]
   uri = "/webhooks/app/scopes_update"
 
   [[webhooks.subscriptions]]
-  topic = "app/uninstalled"
+  topics = [ "app/uninstalled" ]
   uri = "/webhooks/app/uninstalled"
 
+  # GDPR compliance webhooks (mandatory for production apps)
+  [[webhooks.subscriptions]]
+  topics = [ "customers/data_request" ]
+  uri = "/webhooks/customers/data_request"
+
+  [[webhooks.subscriptions]]
+  topics = [ "customers/redact" ]
+  uri = "/webhooks/customers/redact"
+
+  [[webhooks.subscriptions]]
+  topics = [ "shop/redact" ]
+  uri = "/webhooks/shop/redact"
+
 [access_scopes]
-# keep only what you need; add read_all_orders only if justified in review
-scopes = "read_orders,read_products"
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_orders,read_all_orders,write_products"
 
 [auth]
-redirect_urls = ["https://shopdelta.vercel.app/auth/callback"]
+redirect_urls = [
+  "https://shopdelta.vercel.app/auth/callback",
+  "https://shopdelta.vercel.app/auth/shopify/callback", 
+  "https://shopdelta.vercel.app/api/auth/callback"
+]
+
+[pos]
+embedded = false
 
 [build]
 include_config_on_deploy = true
