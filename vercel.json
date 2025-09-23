@@ -1,19 +1,8 @@
 {
-  "buildCommand": "remix build",
-  "installCommand": "npm install",
   "functions": {
-    "api/index.js": {
+    "api/**": {
+      "runtime": "nodejs20.x",
       "maxDuration": 60
     }
-  },
-  "routes": [
-    {
-      "src": "/build/(.*)",
-      "dest": "/build/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/api/index.js"
-    }
-  ]
+  }
 }
