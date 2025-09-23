@@ -1,9 +1,8 @@
 {
   "buildCommand": "remix build",
   "installCommand": "npm install",
-  "framework": null,
   "functions": {
-    "build/server/index.js": {
+    "api/index.js": {
       "maxDuration": 60
     }
   },
@@ -14,7 +13,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/build/server/index.js"
+      "dest": "/api/index.js"
     }
   ]
 }
