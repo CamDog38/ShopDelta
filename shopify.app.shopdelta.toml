@@ -2,18 +2,35 @@
 
 client_id = "1bfb615d6837e45ae34fb39a820c62ca"
 name = "ShopDelta"
-application_url = "https://points-mit-sight-advisors.trycloudflare.com"
+application_url = "https://shopdelta.vercel.app/"
 embedded = true
 handle = "shopdelta"
 
 [webhooks]
 api_version = "2025-07"
 
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_orders,read_all_orders,write_products"
+
 [auth]
-redirect_urls = ["https://points-mit-sight-advisors.trycloudflare.com/auth/callback", "https://points-mit-sight-advisors.trycloudflare.com/auth/shopify/callback", "https://points-mit-sight-advisors.trycloudflare.com/api/auth/callback"]
+redirect_urls = [
+  "https://shopdelta.vercel.app/auth/callback",
+  "https://shopdelta.vercel.app/auth/shopify/callback", 
+  "https://shopdelta.vercel.app/api/auth/callback"
+]
 
 [pos]
 embedded = false
 
 [build]
-automatically_update_urls_on_dev = true
+include_config_on_deploy = true
+automatically_update_urls_on_dev = false
