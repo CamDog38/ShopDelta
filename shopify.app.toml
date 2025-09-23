@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "f807ad274f7f2cd3f92f533cf7a75215"
-name = "Test"
+name = "ShopDelta"
 application_url = "https://shop-delta-1701-cs69-seven.vercel.app"
 embedded = true
 handle = "test-20425"

@@ -1,4 +1,4 @@
-name = "remix"
+name = "shopdelta"
 roles = ["frontend", "backend"]
 webhooks_path = "/webhooks/app/uninstalled"
 

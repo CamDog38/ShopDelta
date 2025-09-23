@@ -1,5 +1,5 @@
 {
-  "name": "test",
+  "name": "shopdelta",
   "private": true,
   "scripts": {
     "build": "remix vite:build",
