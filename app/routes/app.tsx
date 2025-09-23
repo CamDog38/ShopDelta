@@ -1,16 +1,28 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
+import { redirect } from "@remix-run/node";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
 import { authenticate } from "../shopify.server";
+import { getPlan } from "../utils/plan.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
+
+  // Redirect merchants without a stored plan to the plan chooser
+  const url = new URL(request.url);
+  const pathname = url.pathname;
+  if (pathname.startsWith("/app") && pathname !== "/app/choose-plan") {
+    const plan = await getPlan(session.shop);
+    if (!plan) {
+      throw redirect("/app/choose-plan");
+    }
+  }
 
   return { apiKey: process.env.SHOPIFY_API_KEY || "" };
 };
@@ -25,8 +37,6 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/analytics">Analytics</Link>
-        <Link to="/app/demo">Demo Store</Link>
-        <Link to="/app/privacy">Privacy Policy</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>
