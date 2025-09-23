@@ -128,9 +128,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     let after: string | null = null;
     const edges: any[] = [];
     while (true) {
-      const response = await admin.graphql(query, { variables: { first: 250, search, after } });
+      const response: Response = await admin.graphql(query, { variables: { first: 250, search, after } });
       const data = await response.json();
-      dlog("GraphQL status:", (response as any).status, "keys:", Object.keys(data || {}));
+      dlog("GraphQL status:", response.status, "keys:", Object.keys(data || {}));
       const gqlErrors = (data && data.errors) || (data && data.data && data.data.errors);
       if (gqlErrors && Array.isArray(gqlErrors) && gqlErrors.length > 0) {
         dlog("GraphQL errors:", gqlErrors);
