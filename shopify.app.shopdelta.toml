@@ -1,0 +1,19 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "1bfb615d6837e45ae34fb39a820c62ca"
+name = "ShopDelta"
+application_url = "https://points-mit-sight-advisors.trycloudflare.com"
+embedded = true
+handle = "shopdelta"
+
+[webhooks]
+api_version = "2025-07"
+
+[auth]
+redirect_urls = ["https://points-mit-sight-advisors.trycloudflare.com/auth/callback", "https://points-mit-sight-advisors.trycloudflare.com/auth/shopify/callback", "https://points-mit-sight-advisors.trycloudflare.com/api/auth/callback"]
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
