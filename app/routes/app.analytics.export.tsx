@@ -79,6 +79,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
     `;
     const search = `processed_at:>='${start!.toISOString()}' processed_at:<='${end!.toISOString()}'`;
+    console.log("GraphQL search query:", search);
+    console.log("Date range:", { start: start!.toISOString(), end: end!.toISOString() });
+    
     // Fetch all pages
     const edges: any[] = [];
     try {
@@ -202,46 +205,62 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         details: "Run 'npm install exceljs' in your project, then retry the export.",
       }, { status: 500 });
     }
+    console.log("Creating Excel workbook...");
     const wb = new ExcelJS.Workbook();
     wb.creator = "Analytics Export";
     const hdrStyle = { bold: true };
+    console.log("Workbook created, adding sheets...");
 
     // Sheet 1: Sales over time (qty & sales)
+    console.log("Adding Sheet 1: SalesOverTime");
     const s1 = wb.addWorksheet("SalesOverTime");
     s1.addRow(["Period", "Quantity", "Sales"]).font = hdrStyle as any;
-    Array.from(buckets.entries()).sort((a,b)=> a[0]>b[0]?1:-1).forEach(([_, v])=>{
+    const bucketEntries = Array.from(buckets.entries()).sort((a,b)=> a[0]>b[0]?1:-1);
+    console.log(`Adding ${bucketEntries.length} rows to SalesOverTime sheet`);
+    bucketEntries.forEach(([_, v])=>{
       s1.addRow([v.label, v.qty, v.sales]);
     });
     // Qty as integer, Sales as accounting format
     s1.getColumn(2).numFmt = "#,##0";
     s1.getColumn(3).numFmt = "#,##0.00";
+    console.log("Sheet 1 completed");
 
     // Sheet 2: Sales over time by product (qty pivot top 20)
+    console.log("Adding Sheet 2: ByProduct_Qty");
     const s2 = wb.addWorksheet("ByProduct_Qty");
     const topProducts = new Map<string, number>();
     for (const [_k, row] of pivot.entries()) for (const [pid, v] of row.entries()) topProducts.set(pid, (topProducts.get(pid)||0)+v.qty);
     const top20 = Array.from(topProducts.entries()).sort((a,b)=> b[1]-a[1]).slice(0,20).map(([pid])=>pid);
+    console.log(`Top 20 products identified: ${top20.length} products`);
     s2.addRow(["Period", ...top20.map(pid=>productSet.get(pid)||pid)]).font = hdrStyle as any;
     Array.from(buckets.entries()).sort((a,b)=> a[0]>b[0]?1:-1).forEach(([key, v])=>{
       const row = pivot.get(key) || new Map();
       s2.addRow([v.label, ...top20.map(pid => (row.get(pid)?.qty)||0)]);
     });
+    console.log("Sheet 2 completed");
 
     // Sheet 3: Top products by qty
+    console.log("Adding Sheet 3: TopProducts_Qty");
     const s3 = wb.addWorksheet("TopProducts_Qty");
     const topQty = Array.from(topProducts.entries()).sort((a,b)=> b[1]-a[1]).slice(0,50);
+    console.log(`Adding ${topQty.length} top products by quantity`);
     s3.addRow(["Product", "Quantity"]).font = hdrStyle as any;
     topQty.forEach(([pid, q])=> s3.addRow([productSet.get(pid)||pid, q]));
+    console.log("Sheet 3 completed");
 
     // Sheet 4: Top products by sales
+    console.log("Adding Sheet 4: TopProducts_Sales");
     const s4 = wb.addWorksheet("TopProducts_Sales");
     const productSales = new Map<string, number>();
     for (const [_k, row] of pivot.entries()) for (const [pid, v] of row.entries()) productSales.set(pid, (productSales.get(pid)||0)+v.sales);
-    Array.from(productSales.entries()).sort((a,b)=> b[1]-a[1]).slice(0,50).forEach(([pid, s], i)=>{
+    const topSales = Array.from(productSales.entries()).sort((a,b)=> b[1]-a[1]).slice(0,50);
+    console.log(`Adding ${topSales.length} top products by sales`);
+    topSales.forEach(([pid, s], i)=>{
       if (i===0) s4.addRow(["Product", "Sales"]).font = hdrStyle as any;
       s4.addRow([productSet.get(pid)||pid, s]);
     });
     s4.getColumn(2).numFmt = "#,##0.00";
+    console.log("Sheet 4 completed");
 
     // Sheet 5+: Comparisons
     // MoM Aggregate pairs
