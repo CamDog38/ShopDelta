@@ -1,8 +1,8 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
-import { Form, useActionData, useNavigation } from "@remix-run/react";
+import { Form, useActionData, useNavigation, useSearchParams } from "@remix-run/react";
 import { Page, Card, Text, BlockStack, Button, TextField } from "@shopify/polaris";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function normaliseShop(shop: string): string | null {
   let s = shop.trim().toLowerCase();
@@ -16,15 +16,8 @@ function normaliseShop(shop: string): string | null {
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const url = new URL(request.url);
-  const shopParam = url.searchParams.get("shop");
-  if (shopParam) {
-    const normalised = normaliseShop(shopParam);
-    if (normalised) {
-      throw redirect(`/auth?shop=${encodeURIComponent(normalised)}`);
-    }
-    return json({ error: "Please enter a valid shop domain (e.g. example.myshopify.com)." }, { status: 400 });
-  }
+  // Render the page; if a shop param is present, the client component will
+  // perform a top-level redirect to avoid accounts.shopify.com within an iframe.
   return json({});
 }
 
@@ -41,8 +34,24 @@ export async function action({ request }: ActionFunctionArgs) {
 export default function ConnectShop() {
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
+  const [params] = useSearchParams();
   const [shop, setShop] = useState("");
   const submitting = nav.state === "submitting";
+
+  // If a shop param is present, perform a TOP-LEVEL redirect to start OAuth.
+  useEffect(() => {
+    const p = params.get("shop");
+    if (p) {
+      const normalised = normaliseShop(p);
+      if (normalised) {
+        const target = `/auth?shop=${encodeURIComponent(normalised)}`;
+        if (typeof window !== "undefined") {
+          // Ensure redirect happens at the top window, not the Admin iframe.
+          (window.top || window).location.href = target;
+        }
+      }
+    }
+  }, [params]);
 
   return (
     <Page title="Connect your shop">
@@ -54,7 +63,7 @@ export default function ConnectShop() {
           {actionData && (actionData as any).error ? (
             <Text as="p" tone="critical">{(actionData as any).error}</Text>
           ) : null}
-          <Form method="post">
+          <Form method="post" target="_top">
             <BlockStack gap="300">
               <TextField
                 label="Shop domain"
