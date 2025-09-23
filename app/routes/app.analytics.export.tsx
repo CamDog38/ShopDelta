@@ -10,6 +10,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const format = url.searchParams.get("format") || "xlsx"; // xlsx only for now
 
+  console.log("Export request received:", {
+    url: url.toString(),
+    searchParams: Object.fromEntries(url.searchParams.entries())
+  });
+
   try {
     const { admin, session } = await authenticate.admin(request);
 
@@ -80,12 +85,35 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       let after: string | null = null;
       while (true) {
         const response = await admin.graphql(query, { variables: { first: 250, search, after } });
-        const data = await response.json();
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("GraphQL response not OK:", response.status, errorText);
+          return json({ 
+            error: "GraphQL request failed", 
+            details: `HTTP ${response.status}: ${errorText}`,
+            query: search 
+          }, { status: 500 });
+        }
+
+        const data = await response.json() as any;
+        
+        if (data.errors) {
+          console.error("GraphQL errors:", data.errors);
+          return json({ 
+            error: "GraphQL query errors", 
+            details: data.errors.map((e: any) => e.message).join(", "),
+            query: search 
+          }, { status: 500 });
+        }
+
         const page = data?.data?.orders;
         const newEdges = page?.edges ?? [];
+        console.log(`Fetched ${newEdges.length} orders, total so far: ${edges.length + newEdges.length}`);
         edges.push(...newEdges);
-        if (page?.pageInfo?.hasNextPage) {
-          after = newEdges.length ? (newEdges[newEdges.length - 1]?.cursor as string) : null;
+        
+        if (page?.pageInfo?.hasNextPage && newEdges.length > 0) {
+          after = newEdges[newEdges.length - 1]?.cursor as string;
         } else {
           break;
         }
@@ -154,6 +182,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
     }
 
+    console.log(`Processing ${edges.length} orders for export`);
+
     // Build the workbook
     if (format !== "xlsx") {
       return json({ error: "Unsupported format" }, { status: 400 });
@@ -162,8 +192,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // Dynamically import exceljs to avoid bundling issues
     let ExcelJS: any;
     try {
+      console.log("Importing exceljs...");
       ExcelJS = await import("exceljs");
+      console.log("ExcelJS imported successfully");
     } catch (e: any) {
+      console.error("Failed to import exceljs:", e);
       return json({
         error: "Missing dependency: exceljs",
         details: "Run 'npm install exceljs' in your project, then retry the export.",
@@ -285,8 +318,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       yoy.getColumn(2).numFmt = "#,##0.00";
     }
 
+    console.log("Generating Excel buffer...");
     const buf = await wb.xlsx.writeBuffer(); // returns ArrayBuffer in browsers / Uint8Array in Node
+    console.log(`Excel buffer generated, size: ${buf.byteLength} bytes`);
+    
     const filename = `analytics_export_${new Date().toISOString().slice(0,10)}.xlsx`;
+    console.log(`Returning Excel file: ${filename}`);
+    
     return new Response(buf as any, {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -295,9 +333,44 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
   } catch (err: any) {
     console.error("Export failed:", err);
+    
+    // Handle Response objects specifically
+    if (err instanceof Response) {
+      try {
+        const errorText = await err.text();
+        return json({ 
+          error: "HTTP Response Error", 
+          details: `Status: ${err.status} ${err.statusText}, Body: ${errorText}`,
+          timestamp: new Date().toISOString()
+        }, { status: 500 });
+      } catch (textErr) {
+        return json({ 
+          error: "HTTP Response Error", 
+          details: `Status: ${err.status} ${err.statusText}`,
+          timestamp: new Date().toISOString()
+        }, { status: 500 });
+      }
+    }
+    
+    // Handle other error types
+    let errorDetails = "Unknown error";
+    if (err?.message) {
+      errorDetails = err.message;
+    } else if (err?.stack) {
+      errorDetails = err.stack;
+    } else if (typeof err === 'string') {
+      errorDetails = err;
+    } else {
+      try {
+        errorDetails = JSON.stringify(err);
+      } catch {
+        errorDetails = String(err);
+      }
+    }
+    
     return json({ 
-      error: err?.message || "Export failed", 
-      details: err?.stack || String(err),
+      error: "Export failed", 
+      details: errorDetails,
       timestamp: new Date().toISOString()
     }, { status: 500 });
   }
