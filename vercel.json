@@ -1,7 +1,9 @@
 {
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
   "functions": {
-    "api/**": {
-      "runtime": "nodejs20.x",
+    "build/server/index.js": {
       "maxDuration": 60
     }
   }
