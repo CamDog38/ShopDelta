@@ -4,18 +4,11 @@ import { redirect } from "@remix-run/node";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
 
+  // If there's a shop parameter, redirect to the Shopify app
   if (url.searchParams.get("shop")) {
     throw redirect(`/app?${url.searchParams.toString()}`);
   }
 
-  return null;
+  // Otherwise, redirect to the public landing page
+  throw redirect("/public");
 };
-
-export default function Index() {
-  return (
-    <div style={{ padding: 24 }}>
-      <h1>Hello World</h1>
-      <p>Your Shopify app home page is working.</p>
-    </div>
-  );
-}
