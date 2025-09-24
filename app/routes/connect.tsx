@@ -1,7 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { Form, useActionData, useNavigation, useSearchParams } from "@remix-run/react";
-import { Page, Card, Text, BlockStack, Button, TextField } from "@shopify/polaris";
 import { useEffect, useState } from "react";
 
 function normaliseShop(shop: string): string | null {
@@ -74,30 +73,80 @@ export default function ConnectShop() {
   }, [params]);
 
   return (
-    <Page title="Connect your shop">
-      <Card>
-        <BlockStack gap="400">
-          <Text as="p" variant="bodyMd">
-            Enter your Shopify shop domain to continue with secure authorisation.
-          </Text>
-          {actionData && (actionData as any).error ? (
-            <Text as="p" tone="critical">{(actionData as any).error}</Text>
-          ) : null}
-          <Form method="post" target="_top">
-            <BlockStack gap="300">
-              <TextField
-                label="Shop domain"
-                name="shop"
-                value={shop}
-                onChange={setShop}
-                placeholder="example.myshopify.com"
-                autoComplete="off"
-              />
-              <Button submit variant="primary" loading={submitting}>Continue</Button>
-            </BlockStack>
-          </Form>
-        </BlockStack>
-      </Card>
-    </Page>
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      padding: '40px'
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: '520px',
+        background: 'white',
+        borderRadius: '16px',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+        padding: '28px'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+          <h1 style={{ margin: 0, fontSize: '22px', color: '#111827' }}>Connect your Shopify store</h1>
+          <p style={{ margin: '8px 0 0', color: '#6b7280' }}>
+            Enter your shop domain to continue with secure authorisation.
+          </p>
+        </div>
+        {actionData && (actionData as any).error ? (
+          <div style={{
+            marginTop: '12px',
+            background: '#fef2f2',
+            color: '#b91c1c',
+            border: '1px solid #fecaca',
+            padding: '10px 12px',
+            borderRadius: '8px'
+          }}>{(actionData as any).error}</div>
+        ) : null}
+        <Form method="post" target="_top" style={{ marginTop: '16px' }}>
+          <label htmlFor="shop" style={{ display: 'block', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>
+            Shop domain
+          </label>
+          <input
+            id="shop"
+            name="shop"
+            value={shop}
+            onChange={(e) => setShop(e.target.value)}
+            placeholder="example.myshopify.com or example"
+            autoComplete="off"
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              borderRadius: '8px',
+              border: '1px solid #d1d5db',
+              outline: 'none'
+            }}
+          />
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{
+              marginTop: '12px',
+              width: '100%',
+              padding: '12px',
+              borderRadius: '8px',
+              border: 'none',
+              color: 'white',
+              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              fontWeight: 700,
+              cursor: submitting ? 'not-allowed' : 'pointer',
+              opacity: submitting ? 0.7 : 1
+            }}
+          >
+            {submitting ? 'Redirecting…' : 'Continue'}
+          </button>
+          <p style={{ marginTop: '8px', color: '#6b7280', fontSize: '12px' }}>
+            Tip: You can enter just the store prefix (e.g. <strong>acme</strong>) or the full domain.
+          </p>
+        </Form>
+      </div>
+    </div>
   );
 }
