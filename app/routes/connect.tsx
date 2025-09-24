@@ -15,9 +15,27 @@ function normaliseShop(shop: string): string | null {
   return valid ? s : null;
 }
 
+// Build Shopify Admin install deep link for a cleaner UX
+// Values derived from shopify.app.toml
+const CLIENT_ID = "1bfb615d6837e45ae34fb39a820c62ca";
+const REDIRECT_URI = encodeURIComponent("https://shopdelta.vercel.app/auth/callback");
+const SCOPES = encodeURIComponent("read_orders,read_all_orders,write_products");
+
+function buildAdminInstallUrl(shopDomain: string) {
+  return `https://${shopDomain}/admin/oauth/install?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${SCOPES}`;
+}
+
 export async function loader({ request }: LoaderFunctionArgs) {
-  // Render the page; if a shop param is present, the client component will
-  // perform a top-level redirect to avoid accounts.shopify.com within an iframe.
+  // If a shop param is present, we can 302 directly on the server to the Admin install link
+  // to avoid rendering the page at all.
+  const url = new URL(request.url);
+  const shopParam = url.searchParams.get("shop");
+  const normalised = shopParam ? normaliseShop(shopParam) : null;
+  if (normalised) {
+    const target = buildAdminInstallUrl(normalised);
+    // Use a 302 server redirect for the cleanest hop
+    throw redirect(target);
+  }
   return json({});
 }
 
@@ -28,7 +46,9 @@ export async function action({ request }: ActionFunctionArgs) {
   if (!normalised) {
     return json({ error: "Please enter a valid shop domain (e.g. example.myshopify.com)." }, { status: 400 });
   }
-  throw redirect(`/auth?shop=${encodeURIComponent(normalised)}`);
+  // Deep link straight to Shopify Admin install flow
+  const target = buildAdminInstallUrl(normalised);
+  throw redirect(target);
 }
 
 export default function ConnectShop() {
@@ -44,7 +64,7 @@ export default function ConnectShop() {
     if (p) {
       const normalised = normaliseShop(p);
       if (normalised) {
-        const target = `/auth?shop=${encodeURIComponent(normalised)}`;
+        const target = buildAdminInstallUrl(normalised);
         if (typeof window !== "undefined") {
           // Ensure redirect happens at the top window, not the Admin iframe.
           (window.top || window).location.href = target;

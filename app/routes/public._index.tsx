@@ -52,9 +52,7 @@ export default function PublicIndex() {
           </a>
           
           <a 
-            href="https://apps.shopify.com" 
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/connect" 
             style={{
               display: "inline-block",
               padding: "18px 36px",
