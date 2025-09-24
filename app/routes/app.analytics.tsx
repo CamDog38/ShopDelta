@@ -1667,7 +1667,7 @@ export default function AnalyticsPage() {
               </div>
             )}
             {!!comparison && (
-              <>
+              <div>
                 {filters?.compareScope === "aggregate" && filters?.compare === 'mom' && (
                   <div style={{ background: 'var(--p-color-bg-surface)', padding: '20px', borderRadius: '12px', border: '1px solid var(--p-color-border)' }}>
                     <div style={{ marginBottom: '16px' }}>
@@ -1894,19 +1894,18 @@ export default function AnalyticsPage() {
                     </div>
                   </div>
                 )}
-              </>
+              </div>
             )}
-          </>
-        )}
-
-        {errType && errType !== "ACCESS_DENIED" && (
-          <div style={{ background: 'var(--p-color-bg-critical-subdued)', padding: '16px', borderRadius: '8px', border: '1px solid var(--p-color-border-critical)' }}>
-            <Text as="p" variant="bodySm" tone="critical">
-              ⚠️ Error loading analytics: {(data as any).message || errType}
-            </Text>
-          </div>
-        )}
-      </BlockStack>
-    </Page>
-  );
-}
+            </>
+            )}
+            {errType && errType !== "ACCESS_DENIED" && (filters?.start && filters?.end) && (
+              <div style={{ background: 'var(--p-color-bg-critical-subdued)', padding: '16px', borderRadius: '8px', border: '1px solid var(--p-color-border-critical)' }}>
+                <Text as="p" variant="bodySm" tone="critical">
+                  ⚠️ Error loading analytics: {(data as any).message || errType}
+                </Text>
+              </div>
+            )}
+            </BlockStack>
+          </Page>
+        );
+      }
