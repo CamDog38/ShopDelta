@@ -35,7 +35,46 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const dlog = (...args: any[]) => {
     if (DEBUG) console.log("[analytics]", ...args);
   };
-  const { admin, session } = await authenticate.admin(request);
+  // Ensure OAuth always happens at the TOP level, not inside the embedded iframe.
+  // If authenticate.admin throws a redirect Response to /auth, catch it and
+  // return an HTML document that sets window.top.location to that URL.
+  let admin: any;
+  let session: any;
+  try {
+    ({ admin, session } = await authenticate.admin(request));
+  } catch (e: unknown) {
+    if (e instanceof Response && e.status >= 300 && e.status < 400) {
+      const location = e.headers.get("Location") || "/auth/login";
+      const html = `<!DOCTYPE html>
+<html>
+  <head><meta charset=\"utf-8\"><title>Authorizing…</title></head>
+  <body>
+    <script>
+      (function(){
+        var url = ${JSON.stringify(location)};
+        try {
+          if (window.top && window.top !== window) {
+            window.top.location.href = url;
+          } else {
+            window.location.href = url;
+          }
+        } catch (err) {
+          window.location.href = url;
+        }
+      })();
+    </script>
+    <noscript>
+      JavaScript is required. <a href="${location}">Continue</a>
+    </noscript>
+  </body>
+</html>`;
+      return new Response(html, {
+        status: 200,
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      });
+    }
+    throw e;
+  }
 
   // Parse filters
   const url = new URL(request.url);

@@ -69,6 +69,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     throw e;
   }
 
+  // If shop param is missing, append it from the authenticated session and reload same URL
+  if (!search.get("shop")) {
+    try {
+      const { session } = await authenticate.admin(request);
+      if (session?.shop) {
+        search.set("shop", session.shop);
+        throw redirect(`${url.pathname}?${search.toString()}`);
+      }
+    } catch (e) {
+      // fall through; authenticate.admin may redirect and be handled below
+    }
+  }
+
   // Validate host parameter matches authenticated session
   try {
     const hostDecoded = Buffer.from(host, 'base64').toString();
@@ -120,8 +133,6 @@ export default function App() {
 
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
-      {/* Required for App Bridge NavMenu/UI components */}
-      <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js" defer />
       {/* App Bridge React NavMenu renders left in-app navigation */}
       <NavMenu>
         <a rel="home" href={`/app?host=${encodeURIComponent(host)}&shop=${encodeURIComponent(shop)}`}>Home</a>
