@@ -1,9 +1,10 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "@remix-run/node";
-import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
+import { Link, Outlet, useLoaderData, useRouteError, useLocation } from "@remix-run/react";
 import { redirect } from "@remix-run/node";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
-import { NavMenu } from "@shopify/app-bridge-react";
+import { TitleBar } from "@shopify/app-bridge-react";
+import { Frame, Navigation } from "@shopify/polaris";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import React from "react";
 
@@ -118,17 +119,42 @@ export default function App() {
     }
   }, []);
 
+  const location = useLocation();
+  
+  // Build navigation items with proper URLs
+  const navigationItems = [
+    {
+      label: 'Home',
+      icon: 'home' as const,
+      url: `/app?host=${encodeURIComponent(host)}&shop=${encodeURIComponent(shop)}`,
+      selected: location.pathname === '/app',
+    },
+    {
+      label: 'Analytics',
+      icon: 'analytics' as const,
+      url: `/app/analytics?host=${encodeURIComponent(host)}&shop=${encodeURIComponent(shop)}`,
+      selected: location.pathname.startsWith('/app/analytics'),
+    }
+  ];
+
+  const navigationMarkup = (
+    <Navigation location={location.pathname}>
+      <Navigation.Section
+        items={navigationItems.map(item => ({
+          ...item,
+          onClick: () => {
+            window.location.href = item.url;
+          }
+        }))}
+      />
+    </Navigation>
+  );
+
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
-      <NavMenu>
-        <Link to={`/app?host=${encodeURIComponent(host)}&shop=${encodeURIComponent(shop)}`} rel="home">
-          Home
-        </Link>
-        <Link to={`/app/analytics?host=${encodeURIComponent(host)}&shop=${encodeURIComponent(shop)}`}>
-          Analytics
-        </Link>
-      </NavMenu>
-      <Outlet />
+      <Frame navigation={navigationMarkup}>
+        <Outlet />
+      </Frame>
     </AppProvider>
   );
 }

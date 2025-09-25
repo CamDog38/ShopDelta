@@ -1,6 +1,5 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { Page, Text, BlockStack, InlineStack, Button, Card } from "@shopify/polaris";
-import { TitleBar } from "@shopify/app-bridge-react";
 import { Link, useLoaderData } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
 import { json } from "@remix-run/node";
@@ -56,11 +55,23 @@ export default function AppIndex() {
   const { host, shop } = useLoaderData<typeof loader>();
   
   // Build analytics URL with host and shop parameters
-  const analyticsUrl = `/app/analytics?host=${encodeURIComponent(host || '')}&shop=${encodeURIComponent(shop || '')}`;
+  // If host/shop are missing, try to get them from the current URL
+  const currentUrl = typeof window !== 'undefined' ? new URL(window.location.href) : null;
+  const fallbackHost = currentUrl?.searchParams.get('host') || '';
+  const fallbackShop = currentUrl?.searchParams.get('shop') || '';
+  
+  const finalHost = host || fallbackHost;
+  const finalShop = shop || fallbackShop;
+  
+  const analyticsUrl = finalHost && finalShop 
+    ? `/app/analytics?host=${encodeURIComponent(finalHost)}&shop=${encodeURIComponent(finalShop)}`
+    : '/app/analytics';
+  
+  // Debug logging
+  console.log('AppIndex - host:', finalHost, 'shop:', finalShop, 'analyticsUrl:', analyticsUrl);
   
   return (
-    <Page>
-      <TitleBar title="ShopDelta Analytics" />
+    <Page title="ShopDelta Analytics">
       <BlockStack gap="600">
         {/* Hero Section */}
         <div style={{ 
@@ -269,7 +280,7 @@ export default function AppIndex() {
           <div style={{ marginBottom: '24px' }}>
             <Text as="p" variant="bodyLg" tone="subdued">Start exploring your sales data and discover insights that will help grow your business.</Text>
           </div>
-          <Link to="/app/analytics">
+          <Link to={analyticsUrl}>
             <div style={{
               display: 'inline-block',
               padding: '14px 28px',
