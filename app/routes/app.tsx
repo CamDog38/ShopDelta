@@ -56,6 +56,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Redirect merchants without a stored plan to the plan chooser
   const url = new URL(request.url);
   const pathname = url.pathname;
+  // Ensure host param is always present for embedded navigation. If missing,
+  // compute it from the authenticated session and redirect to the same path
+  // with host (and shop for good measure).
+  const search = new URLSearchParams(url.search);
+  if (!search.get("host") && session?.shop) {
+    const hostB64 = Buffer.from(`${session.shop}/admin`).toString("base64");
+    search.set("host", hostB64);
+    if (!search.get("shop")) search.set("shop", session.shop);
+    const target = `${pathname}?${search.toString()}`;
+    throw redirect(target);
+  }
+
   if (pathname.startsWith("/app") && pathname !== "/app/choose-plan") {
     const plan = await getPlan(session.shop);
     if (!plan) {
