@@ -5,8 +5,44 @@ import { Link } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
-  return null;
+  // Catch OAuth redirects and force TOP-LEVEL navigation so we don't try to
+  // load accounts.shopify.com in the Admin iframe.
+  try {
+    await authenticate.admin(request);
+    return null;
+  } catch (e: unknown) {
+    if (e instanceof Response && e.status >= 300 && e.status < 400) {
+      const location = e.headers.get("Location") || "/auth/login";
+      const html = `<!DOCTYPE html>
+<html>
+  <head><meta charset=\"utf-8\"><title>Authorizing…</title></head>
+  <body>
+    <script>
+      (function(){
+        var url = ${JSON.stringify(location)};
+        try {
+          if (window.top) {
+            window.top.location.href = url;
+          } else {
+            window.location.href = url;
+          }
+        } catch (err) {
+          window.location.href = url;
+        }
+      })();
+    </script>
+    <noscript>
+      JavaScript is required. <a href="${location}">Continue</a>
+    </noscript>
+  </body>
+</html>`;
+      return new Response(html, {
+        status: 200,
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      });
+    }
+    throw e;
+  }
 };
 
 export default function AppIndex() {

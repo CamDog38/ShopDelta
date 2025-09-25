@@ -38,6 +38,7 @@ export default function Auth() {
   const actionData = useActionData<typeof action>();
   const [shop, setShop] = useState("");
   const { errors } = actionData || loaderData;
+  const fallbackHref = `/app/connect${shop ? `?shop=${encodeURIComponent(shop)}` : ""}`;
 
   return (
     <PolarisAppProvider i18n={loaderData.polarisTranslations}>
@@ -79,7 +80,25 @@ export default function Auth() {
                 autoComplete="on"
                 error={errors.shop}
               />
-              <Button submit>Log in</Button>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Button submit>Log in</Button>
+                <Button
+                  onClick={() => {
+                    const target = fallbackHref;
+                    try {
+                      if (window.top) {
+                        (window.top as Window).location.href = target;
+                      } else {
+                        window.location.href = target;
+                      }
+                    } catch (_) {
+                      window.location.href = target;
+                    }
+                  }}
+                >
+                  Use fallback connect
+                </Button>
+              </div>
             </FormLayout>
           </Form>
         </Card>
