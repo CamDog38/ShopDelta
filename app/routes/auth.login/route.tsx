@@ -20,8 +20,55 @@ import { loginErrorMessage } from "./error.server";
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const errors = loginErrorMessage(await login(request));
+  const url = new URL(request.url);
+  const shopParam = url.searchParams.get("shop");
+  const hostParam = url.searchParams.get("host");
 
+  // Helper: send a top-level redirect to keep embedding
+  const topLevelRedirect = (to: string) => {
+    const abs = new URL(to, url.origin).toString();
+    const html = `<!DOCTYPE html><html><body>
+<script>
+  (function(u){ try { (window.top && window.top!==window ? window.top : window).location.href = u; } catch(_) { location.href = u; } })(${JSON.stringify(abs)});
+</script>
+<noscript><a href="${abs}">Continue</a></noscript>
+</body></html>`;
+    return new Response(html, {
+      status: 200,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  };
+
+  // If shop is already present, jump straight to /auth at the top level
+  if (shopParam) {
+    return topLevelRedirect(`/auth?shop=${encodeURIComponent(shopParam)}`);
+  }
+
+  // If host is present, try to derive the shop domain from it
+  if (hostParam) {
+    try {
+      const decoded = Buffer.from(hostParam, "base64").toString();
+      let shopFromHost: string | null = null;
+
+      if (decoded.includes("admin.shopify.com")) {
+        // admin.shopify.com/store/<handle>
+        const m = decoded.match(/admin\.shopify\.com\/store\/([^/?#]+)/i);
+        if (m && m[1]) shopFromHost = `${m[1]}.myshopify.com`;
+      } else if (decoded.includes(".myshopify.com")) {
+        const m = decoded.match(/([a-z0-9-]+)\.myshopify\.com/i);
+        if (m && m[1]) shopFromHost = `${m[1]}.myshopify.com`;
+      }
+
+      if (shopFromHost) {
+        return topLevelRedirect(`/auth?shop=${encodeURIComponent(shopFromHost)}`);
+      }
+    } catch (_) {
+      // Fall through to showing the manual form
+    }
+  }
+
+  // Default: show the manual login form
+  const errors = loginErrorMessage(await login(request));
   return { errors, polarisTranslations };
 };
 
