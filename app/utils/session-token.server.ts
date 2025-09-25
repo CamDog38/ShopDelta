@@ -34,10 +34,26 @@ const SHOPIFY_HOST_SUFFIX = ".myshopify.com";
 function normaliseShopFromUrl(urlStr: string): string | null {
   try {
     const u = new URL(urlStr);
-    const host = u.host.toLowerCase();
+    let host = u.host.toLowerCase();
+    
+    // Handle admin.shopify.com URLs - extract shop from path
+    if (host === "admin.shopify.com") {
+      const pathParts = u.pathname.split("/");
+      const storeIndex = pathParts.indexOf("store");
+      if (storeIndex >= 0 && pathParts[storeIndex + 1]) {
+        const shopHandle = pathParts[storeIndex + 1];
+        host = `${shopHandle}${SHOPIFY_HOST_SUFFIX}`;
+      } else {
+        return null;
+      }
+    }
+    
+    // Validate it's a proper myshopify.com domain
     if (!host.endsWith(SHOPIFY_HOST_SUFFIX)) return null;
     const [sub] = host.split(SHOPIFY_HOST_SUFFIX);
-    if (!sub || sub.endsWith(".")) return null;
+    if (!sub || sub.endsWith(".") || sub.includes(".")) return null;
+    
+    // Always return canonical {shop}.myshopify.com format
     return host;
   } catch {
     return null;

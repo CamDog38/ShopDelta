@@ -15,7 +15,11 @@ function buildSessionStorage() {
         "For Upstash, use the TLS endpoint and password, e.g. rediss://default:PASSWORD@<host>:6379"
       );
     }
-    throw new Error("Missing REDIS_URL environment variable for Redis session storage");
+    
+    // Temporary fallback: use memory storage for testing (NOT for production)
+    console.warn("⚠️  Using memory storage - sessions will not persist across deployments!");
+    const { MemorySessionStorage } = require("@shopify/shopify-app-session-storage-memory");
+    return new MemorySessionStorage();
   }
 
   // Pass a single redis/rediss connection string to the adapter

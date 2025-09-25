@@ -58,7 +58,8 @@ export function getAppBridge(apiKey: string): ClientApplication<any> {
 
 export function forceTopLevelAuth(app: ClientApplication<any>, shop: string) {
   const redirect = Redirect.create(app);
-  redirect.dispatch(Redirect.Action.REMOTE, `/auth?shop=${shop}`);
+  // Always include shop parameter and redirect to entry for universal handling
+  redirect.dispatch(Redirect.Action.REMOTE, `/entry?shop=${encodeURIComponent(shop)}`);
 }
 
 // -- Token fetch with de-dupe -------------------------------------------------
