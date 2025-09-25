@@ -94,21 +94,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
   }
 
-  // Validate host parameter matches authenticated session
-  try {
-    const hostDecoded = Buffer.from(host, 'base64').toString();
-    const expectedHost = `${session.shop}/admin`;
-    
-    if (hostDecoded !== expectedHost) {
-      console.warn(`[app] Host mismatch: ${hostDecoded} !== ${expectedHost}`);
-      // Redirect to auth at top level (preserves embedding)
-      return topLevelRedirect("/auth/login", url.origin);
-    }
-  } catch (err) {
-    console.error("[app] Invalid host parameter:", err);
-    // Redirect to auth at top level (preserves embedding)
-    return topLevelRedirect("/auth/login", url.origin);
-  }
+  // Do not attempt to strictly validate the host value; Admin Next host may
+  // be admin.shopify.com/store/<handle> or <shop>.myshopify.com/admin.
+  // Presence of a host is enough; authenticate.admin above ensures session.
 
   const pathname = url.pathname;
 

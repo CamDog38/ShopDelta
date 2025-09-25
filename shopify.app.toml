@@ -2,7 +2,7 @@
 
 client_id = "1bfb615d6837e45ae34fb39a820c62ca"
 name = "ShopDelta"
-application_url = "https://shopdelta.vercel.app/entry"
+application_url = "https://shopdelta.vercel.app/app"
 embedded = true
 handle = "shopdelta"
 
