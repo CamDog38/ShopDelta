@@ -1,15 +1,22 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { Page, Text, BlockStack, InlineStack, Button, Card } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { Link } from "@remix-run/react";
+import { Link, useLoaderData } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
+import { json } from "@remix-run/node";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Catch OAuth redirects and force TOP-LEVEL navigation so we don't try to
   // load accounts.shopify.com in the Admin iframe.
   try {
-    await authenticate.admin(request);
-    return null;
+    const { session } = await authenticate.admin(request);
+    
+    // Get host and shop parameters for the analytics link
+    const url = new URL(request.url);
+    const host = url.searchParams.get("host");
+    const shop = session.shop;
+    
+    return json({ host, shop });
   } catch (e: unknown) {
     if (e instanceof Response && e.status >= 300 && e.status < 400) {
       const location = e.headers.get("Location") || "/auth/login";
@@ -46,6 +53,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function AppIndex() {
+  const { host, shop } = useLoaderData<typeof loader>();
+  
+  // Build analytics URL with host and shop parameters
+  const analyticsUrl = `/app/analytics?host=${encodeURIComponent(host || '')}&shop=${encodeURIComponent(shop || '')}`;
+  
   return (
     <Page>
       <TitleBar title="ShopDelta Analytics" />
@@ -67,7 +79,7 @@ export default function AppIndex() {
           <div style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: '40px', maxWidth: '600px', margin: '0 auto 40px' }}>
             <Text as="p" variant="bodyLg">Make data-driven decisions with comprehensive sales insights, product performance tracking, and advanced comparison analytics</Text>
           </div>
-          <Link to="/app/analytics">
+          <Link to={analyticsUrl}>
             <div style={{
               display: 'inline-block',
               padding: '16px 32px',

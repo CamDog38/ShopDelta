@@ -121,10 +121,12 @@ export default function App() {
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
       <NavMenu>
-        <Link to={`/app?host=${encodeURIComponent(host)}`} rel="home">
+        <Link to={`/app?host=${encodeURIComponent(host)}&shop=${encodeURIComponent(shop)}`} rel="home">
           Home
         </Link>
-        <Link to={`/app/analytics?host=${encodeURIComponent(host)}`}>Analytics</Link>
+        <Link to={`/app/analytics?host=${encodeURIComponent(host)}&shop=${encodeURIComponent(shop)}`}>
+          Analytics
+        </Link>
       </NavMenu>
       <Outlet />
     </AppProvider>
