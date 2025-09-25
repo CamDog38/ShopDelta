@@ -3,6 +3,7 @@ import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
 import { redirect } from "@remix-run/node";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
+import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import React from "react";
 
@@ -16,10 +17,22 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const search = new URLSearchParams(url.search);
   const host = search.get("host");
   
-  // If no host parameter, redirect to entry to get proper authentication
+  // Helper function for top-level redirects that preserve embedding
+  function topLevelRedirect(to: string, origin: string) {
+    const url = new URL(to, origin).toString();
+    const html = `<!DOCTYPE html><html><body>
+<script>
+  (function(u){ try { (window.top && window.top!==window ? window.top : window).location.href = u; } catch(_) { location.href = u; } })(${JSON.stringify(url)});
+</script>
+<noscript><a href="${url}">Continue</a></noscript>
+</body></html>`;
+    return new Response(html, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" }});
+  }
+
+  // If no host parameter, redirect to auth at top level (preserves embedding)
   if (!host) {
-    console.log("[app] No host parameter, redirecting to entry");
-    throw redirect("/entry");
+    console.log("[app] No host parameter, redirecting to auth at top level");
+    return topLevelRedirect("/auth/login", url.origin);
   }
 
   // Ensure OAuth always happens at the TOP level, not inside the embedded iframe.
@@ -88,14 +101,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     
     if (hostDecoded !== expectedHost) {
       console.warn(`[app] Host mismatch: ${hostDecoded} !== ${expectedHost}`);
-      // Redirect with correct host
-      const correctHost = Buffer.from(expectedHost).toString("base64");
-      search.set("host", correctHost);
-      throw redirect(`${url.pathname}?${search.toString()}`);
+      // Redirect to auth at top level (preserves embedding)
+      return topLevelRedirect("/auth/login", url.origin);
     }
   } catch (err) {
     console.error("[app] Invalid host parameter:", err);
-    throw redirect("/entry");
+    // Redirect to auth at top level (preserves embedding)
+    return topLevelRedirect("/auth/login", url.origin);
   }
 
   const pathname = url.pathname;
@@ -132,6 +144,11 @@ export default function App() {
 
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
+      {/* App Bridge React NavMenu renders left in-app navigation */}
+      <NavMenu>
+        <a rel="home" href="/app">Home</a>
+        <a href="/app/analytics">Analytics</a>
+      </NavMenu>
       <Outlet />
     </AppProvider>
   );

@@ -870,28 +870,9 @@ export default function AnalyticsPage() {
     submit(fd, { method: "get" });
   };
 
-  // Build header links (Home | Analytics) using current host/shop
-  const searchParams = new URLSearchParams(location.search);
-  const hostParam = searchParams.get("host") || "";
-  const shopParam = (data as any)?.shop || searchParams.get("shop") || "";
-  const homeHref = `/app?host=${encodeURIComponent(hostParam)}&shop=${encodeURIComponent(shopParam)}`;
-  const analyticsHref = `/app/analytics?host=${encodeURIComponent(hostParam)}&shop=${encodeURIComponent(shopParam)}`;
-
   return (
     <Page>
       <TitleBar title="Analytics" />
-      {/* Clean header nav (Home | Analytics) */}
-      <div style={{ marginBottom: 12 }}>
-        <InlineStack gap="300" align="start">
-          <Link url={homeHref}>
-            <Text as="span" variant="bodySm">Home</Text>
-          </Link>
-          <Text as="span" variant="bodySm" tone="subdued">|</Text>
-          <Link url={analyticsHref}>
-            <Text as="span" variant="bodySm">Analytics</Text>
-          </Link>
-        </InlineStack>
-      </div>
       <BlockStack gap="400">
         {/* Filters Card */}
         <div style={{ background: 'var(--p-color-bg-surface)', padding: '20px', borderRadius: '12px', border: '1px solid var(--p-color-border)' }}>

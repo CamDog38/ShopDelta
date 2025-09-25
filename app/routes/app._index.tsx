@@ -54,36 +54,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function AppIndex() {
   const { host, shop } = useLoaderData<typeof loader>();
   
-  // Build analytics URL with host and shop parameters
-  // If host/shop are missing, try to get them from the current URL
-  const currentUrl = typeof window !== 'undefined' ? new URL(window.location.href) : null;
-  const fallbackHost = currentUrl?.searchParams.get('host') || '';
-  const fallbackShop = currentUrl?.searchParams.get('shop') || '';
-  
-  const finalHost = host || fallbackHost;
-  const finalShop = shop || fallbackShop;
-  
-  const analyticsUrl = finalHost && finalShop 
-    ? `/app/analytics?host=${encodeURIComponent(finalHost)}&shop=${encodeURIComponent(finalShop)}`
-    : '/app/analytics';
-  
-  // Debug logging
-  console.log('AppIndex - host:', finalHost, 'shop:', finalShop, 'analyticsUrl:', analyticsUrl);
+  // Use path-only URL - App Bridge will inject host/shop params automatically
+  const analyticsUrl = '/app/analytics';
   
   return (
     <Page title="ShopDelta Analytics">
-      {/* Clean header nav (Home | Analytics) */}
-      <div style={{ marginBottom: 12 }}>
-        <InlineStack gap="300" align="start">
-          <Link to={`/app?host=${encodeURIComponent(finalHost)}&shop=${encodeURIComponent(finalShop)}`} prefetch="intent">
-            <Text as="span" variant="bodySm">Home</Text>
-          </Link>
-          <Text as="span" variant="bodySm" tone="subdued">|</Text>
-          <Link to={analyticsUrl} prefetch="intent">
-            <Text as="span" variant="bodySm">Analytics</Text>
-          </Link>
-        </InlineStack>
-      </div>
       <BlockStack gap="600">
         {/* Hero Section */}
         <div style={{ 
