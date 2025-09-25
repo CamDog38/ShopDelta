@@ -43,7 +43,28 @@ export default function Auth() {
     <PolarisAppProvider i18n={loaderData.polarisTranslations}>
       <Page>
         <Card>
-          <Form method="post">
+          {/* Force OAuth to occur at the TOP level to avoid iframe blocking by accounts.shopify.com */}
+          <Form
+            method="post"
+            onSubmit={(e) => {
+              try {
+                // Prevent in-iframe form post; send the top window to /auth?shop=...
+                e.preventDefault();
+                const params = new URLSearchParams();
+                if (shop) params.set("shop", shop);
+                const target = `/auth?${params.toString()}`;
+                if (window.top) {
+                  (window.top as Window).location.href = target;
+                } else {
+                  window.location.href = target;
+                }
+              } catch (_) {
+                // Fallback in case of any runtime issues
+                const target = `/auth?shop=${encodeURIComponent(shop)}`;
+                window.location.href = target;
+              }
+            }}
+          >
             <FormLayout>
               <Text variant="headingMd" as="h2">
                 Log in
