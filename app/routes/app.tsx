@@ -3,7 +3,6 @@ import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
 import { redirect } from "@remix-run/node";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
-import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import React from "react";
 
@@ -133,11 +132,6 @@ export default function App() {
 
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
-      {/* App Bridge React NavMenu renders left in-app navigation */}
-      <NavMenu>
-        <a rel="home" href={`/app?host=${encodeURIComponent(host)}&shop=${encodeURIComponent(shop)}`}>Home</a>
-        <a href={`/app/analytics?host=${encodeURIComponent(host)}&shop=${encodeURIComponent(shop)}`}>Analytics</a>
-      </NavMenu>
       <Outlet />
     </AppProvider>
   );

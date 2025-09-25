@@ -72,6 +72,18 @@ export default function AppIndex() {
   
   return (
     <Page title="ShopDelta Analytics">
+      {/* Clean header nav (Home | Analytics) */}
+      <div style={{ marginBottom: 12 }}>
+        <InlineStack gap="300" align="start">
+          <Link to={`/app?host=${encodeURIComponent(finalHost)}&shop=${encodeURIComponent(finalShop)}`} prefetch="intent">
+            <Text as="span" variant="bodySm">Home</Text>
+          </Link>
+          <Text as="span" variant="bodySm" tone="subdued">|</Text>
+          <Link to={analyticsUrl} prefetch="intent">
+            <Text as="span" variant="bodySm">Analytics</Text>
+          </Link>
+        </InlineStack>
+      </div>
       <BlockStack gap="600">
         {/* Hero Section */}
         <div style={{ 
